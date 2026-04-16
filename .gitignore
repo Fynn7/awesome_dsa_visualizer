@@ -1,0 +1,42 @@
+# IDE
+.cursor/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Node / Vite / TypeScript
+node_modules/
+dist/
+.vite/
+coverage/
+*.tsbuildinfo
+
+# Electron build outputs
+out/
+release/
+*.blockmap
+*.exe
+*.dmg
+*.AppImage
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Python cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Keep this repo-level local config tracked
+!cpptools_dark_vs_new.json
