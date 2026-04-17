@@ -427,6 +427,7 @@ export function AnimationPanel({
   );
 
   useLayoutEffect(() => {
+    if (!isPanelReady) return;
     if (enableAnimationScroll) {
       setFitEnvelopeSize(null);
       return;
@@ -453,7 +454,12 @@ export function AnimationPanel({
         return { width: maxWidth, height: maxHeight };
       });
     }
-  }, [enableAnimationScroll, traceEnvelopeSteps, shouldShowArrayIndices]);
+  }, [
+    enableAnimationScroll,
+    traceEnvelopeSteps,
+    shouldShowArrayIndices,
+    isPanelReady,
+  ]);
 
   useLayoutEffect(() => {
     if (isStackLinkedList) {
@@ -1085,6 +1091,7 @@ export function AnimationPanel({
   ]);
 
   useEffect(() => {
+    if (!isPanelReady) return;
     if (enableAnimationScroll) {
       setFitScale(1);
       setFitHeightPx(null);
@@ -1149,6 +1156,7 @@ export function AnimationPanel({
     enableAnimationScroll,
     animationFitAllowUpscale,
     fitEnvelopeSize,
+    isPanelReady,
   ]);
 
   const ariaLabel = isStackLinkedList && stackLinkedList

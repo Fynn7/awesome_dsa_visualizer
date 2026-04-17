@@ -126,6 +126,7 @@ Each panel uses a consistent card structure:
   - Array index labels are hidden for stack algorithms.
   - Pointer stacking rule: keep a stable baseline when pointers target different nodes; stack upward only when targeting the same node.
   - Settings include internal scroll mode and fit-to-viewport mode with stable trace-based sizing.
+  - Settings toggles use switch-style controls (not native checkbox visuals) via the shared `ToggleControl`.
   - English UI strings are sourced from `strings.ts`.
 - **Variables panel**:
   - Two-column table: variable name and rendered value string.
