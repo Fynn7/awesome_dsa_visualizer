@@ -513,14 +513,33 @@ export function AnimationPanel({
       prevIndexById.set(prevBarsRef.current[idx]!.id, idx);
     }
 
+    const preClearPointers = {
+      i: pointerIRef.current?.getBoundingClientRect(),
+      j: pointerJRef.current?.getBoundingClientRect(),
+      jMinus1: pointerJMinus1Ref.current?.getBoundingClientRect(),
+      min: pointerMinRef.current?.getBoundingClientRect(),
+    };
+
+    const visualRects = new Map<string, number>();
+    for (const bar of bars) {
+      const el = barRefs.current[bar.id];
+      if (!el) continue;
+      visualRects.set(bar.id, el.getBoundingClientRect().left);
+    }
+
+    for (const bar of bars) {
+      const el = barRefs.current[bar.id];
+      if (!el) continue;
+      el.style.transition = "";
+      el.style.transform = "";
+      el.style.willChange = "";
+    }
+
     const currentRects = new Map<string, number>();
     for (const bar of bars) {
       const el = barRefs.current[bar.id];
       if (!el) continue;
       currentRects.set(bar.id, el.getBoundingClientRect().left);
-      el.style.transition = "";
-      el.style.transform = "";
-      el.style.willChange = "";
     }
 
     const SPLIT_OFFSET = 11;
@@ -562,18 +581,19 @@ export function AnimationPanel({
         [];
       for (let idx = 0; idx < bars.length; idx += 1) {
         const bar = bars[idx]!;
-        const prevLeft = prevRectsRef.current.get(bar.id);
+        if (!prevRectsRef.current.has(bar.id)) continue;
+        const visualLeft = visualRects.get(bar.id);
         const nextLeft = currentRects.get(bar.id);
         const prevIdx = prevIndexById.get(bar.id);
         if (
-          prevLeft === undefined ||
+          visualLeft === undefined ||
           nextLeft === undefined ||
           prevIdx === undefined ||
           prevIdx === idx
         ) {
           continue;
         }
-        const delta = prevLeft - nextLeft;
+        const delta = visualLeft - nextLeft;
         if (Math.abs(delta) < 0.5) continue;
         const el = barRefs.current[bar.id];
         if (!el) continue;
@@ -692,8 +712,14 @@ export function AnimationPanel({
       const shouldFlip = shouldAnimatePointerFlip(prevEntry?.center, newCenter);
 
       if (shouldFlip) {
-        const prevCenter = prevEntry?.center ?? newCenter;
-        const delta = prevCenter - newCenter;
+        let visualCenter = prevEntry?.center ?? newCenter;
+        const rectBefore = preClearPointers[key];
+        const trackRect = barsTrackRef.current?.getBoundingClientRect();
+        if (rectBefore && trackRect) {
+           visualCenter = (rectBefore.left + rectBefore.width / 2 - trackRect.left) / layoutScale;
+        }
+        const delta = visualCenter - newCenter;
+        
         el.style.willChange = "transform";
         el.style.transition = "none";
         el.style.transform = `translateX(calc(-50% + ${delta}px))`;
@@ -866,14 +892,35 @@ export function AnimationPanel({
     const layoutScale =
       enableAnimationScroll || fitScale <= 0 ? 1 : fitScale;
 
+    // Pass 1: READ pointers
+    const preClearStackPointers = {
+      first: stackFirstPointerRef.current?.getBoundingClientRect(),
+      oldfirst: stackOldFirstPointerRef.current?.getBoundingClientRect(),
+    };
+
+    // Pass 2: READ bounds
+    const visualStackRects = new Map<string, number>();
+    for (const node of stackLinkedList.nodes) {
+      const el = stackNodeRefs.current[node.id];
+      if (!el) continue;
+      visualStackRects.set(node.id, el.getBoundingClientRect().left);
+    }
+
+    // Pass 3: WRITE clear styles
+    for (const node of stackLinkedList.nodes) {
+      const el = stackNodeRefs.current[node.id];
+      if (!el) continue;
+      el.style.transition = "";
+      el.style.transform = "";
+      el.style.willChange = "";
+    }
+
+    // Pass 4: READ correct rest geometry
     const currentRects = new Map<string, number>();
     for (const node of stackLinkedList.nodes) {
       const el = stackNodeRefs.current[node.id];
       if (!el) continue;
       currentRects.set(node.id, el.getBoundingClientRect().left);
-      el.style.transition = "";
-      el.style.transform = "";
-      el.style.willChange = "";
     }
 
     const pointerById = new Map(
@@ -901,10 +948,11 @@ export function AnimationPanel({
     if (prevStackRectsRef.current.size > 0) {
       const moved: Array<{ el: HTMLDivElement; delta: number }> = [];
       for (const node of stackLinkedList.nodes) {
-        const prevLeft = prevStackRectsRef.current.get(node.id);
+        if (!prevStackRectsRef.current.has(node.id)) continue;
+        const visualLeft = visualStackRects.get(node.id);
         const nextLeft = currentRects.get(node.id);
-        if (prevLeft === undefined || nextLeft === undefined) continue;
-        const delta = prevLeft - nextLeft;
+        if (visualLeft === undefined || nextLeft === undefined) continue;
+        const delta = visualLeft - nextLeft;
         if (Math.abs(delta) < 0.5) continue;
         const el = stackNodeRefs.current[node.id];
         if (!el) continue;
@@ -978,8 +1026,13 @@ export function AnimationPanel({
       }
       const shouldFlip = shouldAnimatePointerFlip(prevEntry?.center, center);
       if (shouldFlip) {
-        const prevCenter = prevEntry?.center ?? center;
-        const delta = prevCenter - center;
+        let visualCenter = prevEntry?.center ?? center;
+        const rectBefore = preClearStackPointers[key];
+        const trackRect = stackTrackRef.current?.getBoundingClientRect();
+        if (rectBefore && trackRect) {
+           visualCenter = (rectBefore.left + rectBefore.width / 2 - trackRect.left) / layoutScale;
+        }
+        const delta = visualCenter - center;
         el.style.willChange = "transform";
         el.style.transition = "none";
         el.style.transform = `translateX(calc(-50% + ${delta}px))`;
