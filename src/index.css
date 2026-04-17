@@ -1450,12 +1450,16 @@ button {
 
 .presentation-play-hint-layer {
   position: absolute;
-  inset: 0.5rem;
   z-index: 3;
   display: flex;
-  align-items: center;
-  justify-content: center;
   pointer-events: none;
+}
+
+.presentation-play-hint-layer--top-right {
+  top: clamp(3.25rem, 5.5vh, 4.25rem);
+  right: clamp(0.5rem, 1.2vw, 1rem);
+  align-items: flex-start;
+  justify-content: flex-end;
 }
 
 .presentation-play-hint {
@@ -1501,6 +1505,18 @@ button {
   .presentation-play-hint {
     animation: none;
     opacity: 0.95;
+  }
+}
+
+@media (max-width: 900px) {
+  .presentation-play-hint-layer--top-right {
+    top: clamp(3rem, 5vh, 3.7rem);
+    right: 0.45rem;
+  }
+
+  .presentation-play-hint-icon {
+    width: 52px;
+    height: 52px;
   }
 }
 

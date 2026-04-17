@@ -110,6 +110,7 @@ Each panel uses a consistent card structure:
   - Monospace output stream; gray empty-state hint when no output exists.
 - **Animation panel**:
   - Contains a one-line step description and icon-only controls.
+  - In presentation mode, transient play/pause/step feedback icons are anchored at the top-right, directly below the ANIMATION panel chrome area, to avoid occluding the main visualization.
   - In shortcuts help, autoplay toggle is represented as dual state icons (`Play` + `Pause`) with the `Space` key.
   - Presentation shortcuts mirror UI help: Next step supports `Enter` / `→` / `Left click`; Previous step supports `←` / `Right click`.
   - Text in the animation area should not be user-selectable.
