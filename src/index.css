@@ -164,6 +164,14 @@ button {
   min-width: 0;
 }
 
+.command-palette-trigger-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
 .command-palette-overlay {
   position: fixed;
   inset: 0;

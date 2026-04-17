@@ -61,7 +61,7 @@ For bar-based algorithm visuals, default bars use muted dark green, comparison b
 ## 5. Header
 
 - Left side: app title.
-- Right side: command entry styled like a narrow search strip (without inline shortcut text).
+- Right side: command entry styled like a narrow search strip with a leading magnifier icon (without inline shortcut text).
 - Global command panel toggle: **Ctrl+Shift+P** / **Cmd+Shift+P**.
 - Shortcuts help: open with top-right Help icon or the **`?`** key.
 - Header command area and settings icon should not use hover tooltips in this layout; rely on `aria-label`.

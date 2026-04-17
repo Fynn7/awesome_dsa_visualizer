@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { HelpCircle, Settings } from "lucide-react";
+import { HelpCircle, Search, Settings } from "lucide-react";
 import { CommandPalette } from "./components/CommandPalette";
 import { KeyboardHelpModal } from "./components/KeyboardHelpModal";
 import { PresentationShell } from "./components/PresentationShell";
@@ -172,6 +172,9 @@ export default function App() {
             aria-label={strings.header.commandAria}
             onClick={() => setCommandPaletteOpen(true)}
           >
+            <span className="command-palette-trigger-icon" aria-hidden>
+              <Search size={14} strokeWidth={2} />
+            </span>
             <span className="command-palette-trigger-placeholder">
               {strings.header.commandPlaceholder}
             </span>
