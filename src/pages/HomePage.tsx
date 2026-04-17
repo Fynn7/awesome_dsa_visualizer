@@ -1,4 +1,5 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { AlignEndHorizontal, Search, StretchHorizontal } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { AlgorithmId } from "../lib/mockTrace";
 import {
@@ -48,6 +49,7 @@ function HighlightedTitle({
 export function HomePage() {
   const navigate = useNavigate();
   const listId = useId();
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const [isSuggestionOpen, setIsSuggestionOpen] = useState(false);
@@ -59,6 +61,13 @@ export function HomePage() {
       filtered.length === 0 ? 0 : Math.min(i, filtered.length - 1)
     );
   }, [filtered]);
+
+  useEffect(() => {
+    const rafId = window.requestAnimationFrame(() => {
+      inputRef.current?.focus();
+    });
+    return () => window.cancelAnimationFrame(rafId);
+  }, []);
 
   const enterApp = (algorithmId: AlgorithmId) => {
     navigate(`/app?algorithm=${encodeURIComponent(algorithmId)}`);
@@ -78,38 +87,50 @@ export function HomePage() {
   return (
     <main className="home-page">
       <div className="home-search-wrap">
-        <input
-          type="search"
-          className="command-palette-input home-search-input"
-          placeholder={strings.home.searchPlaceholder}
-          role="combobox"
-          aria-label={strings.home.searchAria}
-          aria-expanded={isSuggestionOpen}
-          aria-autocomplete="list"
-          aria-controls={listId}
-          aria-activedescendant={activeOptionId}
-          autoComplete="off"
-          autoCorrect="off"
-          spellCheck={false}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => setIsSuggestionOpen(true)}
-          onBlur={() => setIsSuggestionOpen(false)}
-          onKeyDown={(e) => {
-            if (e.key === "ArrowDown") {
-              e.preventDefault();
-              if (filtered.length === 0) return;
-              setActiveIndex((i) => (i + 1) % filtered.length);
-            } else if (e.key === "ArrowUp") {
-              e.preventDefault();
-              if (filtered.length === 0) return;
-              setActiveIndex((i) => (i - 1 + filtered.length) % filtered.length);
-            } else if (e.key === "Enter") {
-              e.preventDefault();
-              pickAt(activeIndex);
-            }
-          }}
-        />
+        <div className="home-search-input-wrap">
+          <button
+            type="button"
+            className="home-search-leading-icon-button"
+            aria-label={strings.home.searchIconAria}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => pickAt(activeIndex)}
+          >
+            <Search size={16} strokeWidth={2} />
+          </button>
+          <input
+            ref={inputRef}
+            type="search"
+            className="command-palette-input home-search-input"
+            placeholder={strings.home.searchPlaceholder}
+            role="combobox"
+            aria-label={strings.home.searchAria}
+            aria-expanded={isSuggestionOpen}
+            aria-autocomplete="list"
+            aria-controls={listId}
+            aria-activedescendant={activeOptionId}
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onFocus={() => setIsSuggestionOpen(true)}
+            onBlur={() => setIsSuggestionOpen(false)}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                if (filtered.length === 0) return;
+                setActiveIndex((i) => (i + 1) % filtered.length);
+              } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                if (filtered.length === 0) return;
+                setActiveIndex((i) => (i - 1 + filtered.length) % filtered.length);
+              } else if (e.key === "Enter") {
+                e.preventDefault();
+                pickAt(activeIndex);
+              }
+            }}
+          />
+        </div>
         {isSuggestionOpen ? (
           <div
             id={listId}
@@ -125,6 +146,9 @@ export function HomePage() {
               filtered.map(({ item }, index) => {
                 const active = index === activeIndex;
                 const titleMatchIndices = getTitleMatchIndices(query, item);
+                const showSortIcon =
+                  item.id === "insertion" || item.id === "selection";
+                const showStackIcon = item.id === "stack";
                 return (
                   <button
                     key={item.id}
@@ -137,6 +161,15 @@ export function HomePage() {
                     onClick={() => pickAt(index)}
                     onMouseEnter={() => setActiveIndex(index)}
                   >
+                    {showSortIcon ? (
+                      <span className="home-search-row-type-icon" aria-hidden>
+                        <AlignEndHorizontal size={15} strokeWidth={2} />
+                      </span>
+                    ) : showStackIcon ? (
+                      <span className="home-search-row-type-icon" aria-hidden>
+                        <StretchHorizontal size={15} strokeWidth={2} />
+                      </span>
+                    ) : null}
                     <HighlightedTitle
                       title={item.title}
                       matchIndices={titleMatchIndices}

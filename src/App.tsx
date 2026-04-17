@@ -164,11 +164,11 @@ export default function App({ initialAlgorithmId }: AppProps) {
   }, [state.panels.animation, presentationMode, exitPresentation]);
 
   useEffect(() => {
-    if (!initialAlgorithmId || initialAlgorithmId === state.algorithmId) {
+    if (!initialAlgorithmId) {
       return;
     }
     dispatch({ type: "SET_ALGORITHM", algorithmId: initialAlgorithmId });
-  }, [initialAlgorithmId, state.algorithmId]);
+  }, [initialAlgorithmId]);
 
   return (
     <div className="app-shell">

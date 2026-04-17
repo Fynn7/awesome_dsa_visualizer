@@ -4,6 +4,7 @@ export const strings = {
   home: {
     searchPlaceholder: "Type to filter demos by name…",
     searchAria: "Algorithm search",
+    searchIconAria: "Open top matching algorithm",
   },
   header: {
     commandPlaceholder: "Search commands and scenarios…",

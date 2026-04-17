@@ -61,12 +61,50 @@ body {
   gap: 0.55rem;
 }
 
-.home-search-input {
+.home-search-input.command-palette-input {
   border: 1px solid var(--border);
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.22);
-  padding: 0.75rem 1rem;
+  padding: 0.75rem 1rem 0.75rem 3rem;
   font-size: 1rem;
+}
+
+.home-search-input::-webkit-search-decoration,
+.home-search-input::-webkit-search-cancel-button,
+.home-search-input::-webkit-search-results-button,
+.home-search-input::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.home-search-input-wrap {
+  position: relative;
+}
+
+.home-search-leading-icon-button {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.home-search-leading-icon-button:hover {
+  color: var(--text);
+}
+
+.home-search-leading-icon-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 999px;
 }
 
 .home-search-list {
@@ -81,6 +119,26 @@ body {
   box-shadow: 0 16px 42px rgba(0, 0, 0, 0.35);
   max-height: min(52vh, 20rem);
   overflow-y: auto;
+}
+
+.home-search-list .command-palette-row {
+  position: relative;
+  padding-left: 3rem;
+}
+
+.home-search-list .command-palette-empty {
+  padding-left: 3rem;
+}
+
+.home-search-row-type-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
 }
 
 /* VS Code–style scrollbars (Firefox) */
