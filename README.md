@@ -21,6 +21,7 @@ A browser-based visualization tool for teaching university-level data structures
 - **Minimal search home**
   - `/` shows a Google-like minimal entry page with a single algorithm search input.
   - Search behavior and row highlighting reuse the same matching and UI style as the in-app command palette.
+  - Each query piece must fuzzy-match the item title before that item can appear in results.
   - Press `Enter` to open the top match, or choose a row with keyboard/mouse; both go to `/app`.
   - If there is no match, you stay on `/` and see the same empty-state copy used by command palette.
 

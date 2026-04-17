@@ -34,11 +34,11 @@ function getSearchCandidates(item: PaletteItem): string[] {
 function bestFuzzyForPiece(
   piece: string,
   candidates: string[]
-): { score: number; result: FuzzyScore; candidate: string } | undefined {
+): { score: number; result: FuzzyScore; candidate: string; candidateIndex: number } | undefined {
   const pieceLower = piece.toLowerCase();
-  let best: { score: number; result: FuzzyScore; candidate: string } | undefined;
+  let best: { score: number; result: FuzzyScore; candidate: string; candidateIndex: number } | undefined;
 
-  for (const candidate of candidates) {
+  for (const [candidateIndex, candidate] of candidates.entries()) {
     const result = fuzzyScore(
       piece,
       pieceLower,
@@ -49,7 +49,7 @@ function bestFuzzyForPiece(
       strictFuzzyScoreOptions
     );
     if (result && (!best || result[0] > best.score)) {
-      best = { score: result[0], result, candidate };
+      best = { score: result[0], result, candidate, candidateIndex };
     }
   }
 
@@ -58,9 +58,24 @@ function bestFuzzyForPiece(
 
 function scorePaletteItem(queryPieces: string[], item: PaletteItem): number | undefined {
   const candidates = getSearchCandidates(item);
+  const title = item.title;
+  const titleLower = title.toLowerCase();
   let totalScore = 0;
 
   for (const piece of queryPieces) {
+    const pieceLower = piece.toLowerCase();
+    const titleResult = fuzzyScore(
+      piece,
+      pieceLower,
+      0,
+      title,
+      titleLower,
+      0,
+      strictFuzzyScoreOptions
+    );
+    if (!titleResult) {
+      return undefined;
+    }
     const best = bestFuzzyForPiece(piece, candidates);
     if (!best) {
       return undefined;
@@ -117,7 +132,7 @@ export function getFilteredPaletteItems(query: string): {
 
   const queryPieces = raw.split(/\s+/).filter((piece) => piece.length > 0);
 
-  return PALETTE_ITEMS.map((item, index) => {
+  const ranked = PALETTE_ITEMS.map((item, index) => {
     const score = scorePaletteItem(queryPieces, item);
     if (score === undefined) {
       return undefined;
@@ -129,7 +144,9 @@ export function getFilteredPaletteItems(query: string): {
     .sort((a, b) => b.score - a.score || a.index - b.index)
     .map(({ item, score }) => {
       return { item, score };
-    })
+    });
+
+  return ranked;
 }
 
 /** Display title for header / chrome (single source of truth with palette list). */

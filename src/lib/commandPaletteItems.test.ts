@@ -35,6 +35,10 @@ describe("getFilteredPaletteItems", () => {
   it("requires every space-separated piece to match", () => {
     expect(queryIds("ins sort")).toEqual(["insertion"]);
   });
+
+  it("filters out items whose title does not match each query piece", () => {
+    expect(queryIds("sta")).toEqual(["stack"]);
+  });
 });
 
 describe("getTitleMatchIndices", () => {
