@@ -6,8 +6,6 @@ export const strings = {
     appBoot: "Preparing workspace…",
     editorInit: "Loading code editor…",
     animationInit: "Preparing animation panel…",
-    consoleRefresh: "Refreshing console output…",
-    variablesRefresh: "Refreshing variables…",
   },
   home: {
     searchPlaceholder: "Type to filter demos by name…",

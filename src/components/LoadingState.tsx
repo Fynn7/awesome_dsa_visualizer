@@ -20,22 +20,6 @@ export function Spinner({
   );
 }
 
-export function InlineLoading({
-  label,
-  className,
-}: {
-  label: string;
-  className?: string;
-}) {
-  const classes = ["loading-inline", className].filter(Boolean).join(" ");
-  return (
-    <div className={classes} role="status" aria-live="polite">
-      <Spinner label={label} size="sm" />
-      <span>{label}</span>
-    </div>
-  );
-}
-
 export function PanelSkeleton({
   label,
   rows = 4,

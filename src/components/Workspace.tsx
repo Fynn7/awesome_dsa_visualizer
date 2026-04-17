@@ -122,7 +122,7 @@ export function Workspace({
       id: "console",
       order: LEFT_STACK_ORDER.console,
       size: panels.editor ? 42 : 100,
-      node: <ConsolePanel lines={state.consoleLines} loadingKey={state.stepIndex} />,
+      node: <ConsolePanel lines={state.consoleLines} />,
     });
   }
 
@@ -155,7 +155,7 @@ export function Workspace({
     rightRaw.push({
       id: "variables",
       order: RIGHT_STACK_ORDER.variables,
-      node: <VariablesPanel step={step} loadingKey={state.stepIndex} />,
+      node: <VariablesPanel step={step} />,
     });
   }
   if (panels.pdf) {

@@ -396,15 +396,6 @@ button {
   background: var(--bg-panel);
 }
 
-.loading-inline {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin: 0.5rem 0.65rem 0;
-  color: var(--text-muted);
-  font-size: 0.78rem;
-}
-
 .loading-spinner {
   display: inline-flex;
   align-items: center;
