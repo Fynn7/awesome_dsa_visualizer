@@ -152,6 +152,8 @@ Each panel uses a consistent card structure:
   - For short status feedback (for example, code changed and trace may be out of sync).
   - Supports auto-dismiss and manual close.
   - In mismatch cases, include a **Reset demo** action.
+- **Fatal / route-level errors**:
+  - Uncaught render errors on `/` or `/app` are handled by the router `errorElement`: a full-screen English recovery view with actions to go home or reload. Copy lives in `strings.routeError`. Routing behavior and wording are specified in [`README.md`](../README.md).
 - **Icon-only controls**:
   - Must provide clear `aria-label`.
   - Do not depend on native `title`.

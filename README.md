@@ -24,6 +24,7 @@ A browser-based visualization tool for teaching university-level data structures
   - Each query piece must fuzzy-match the item title before that item can appear in results.
   - Press `Enter` to open the top match, or choose a row with keyboard/mouse; both go to `/app`.
   - If there is no match, you stay on `/` and see the same empty-state copy used by command palette.
+  - If the route throws an uncaught error while rendering, the app shows a full-screen recovery screen (back to home or reload). User-visible copy is defined in `src/strings.ts` under `routeError`.
 
 - **Presentation modes**
   - Native browser fullscreen presentation when available.
@@ -64,6 +65,7 @@ A browser-based visualization tool for teaching university-level data structures
    - Visit `http://localhost:5173` (or whatever port your dev server reports) in a modern desktop browser.
    - At `/`, use the search input to pick a demo and enter the visualizer at `/app`.
    - You can also open `/app` directly to enter the full workspace.
+   - **Development only**: open `/app?crash=1` to intentionally render the route error recovery screen (remove the query to continue).
 
 ## Project Status
 

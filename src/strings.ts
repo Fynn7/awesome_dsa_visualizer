@@ -88,6 +88,16 @@ export const strings = {
   },
   emptyAllPanels:
     "All panels are hidden. Use the toolbar to show at least one panel.",
+  /** Full-screen recovery when a route throws (see `RouteErrorPage`). */
+  routeError: {
+    title: "Something went wrong",
+    description:
+      "The app hit an unexpected error. You can return home or try reloading this page.",
+    backHome: "Back to home",
+    reload: "Reload page",
+    /** `<details>` summary for dev-only stack trace */
+    detailsSummary: "Technical details",
+  },
   presentation: {
     /** Animation panel: enter browser fullscreen presentation */
     presentNative: "Browser fullscreen presentation",
