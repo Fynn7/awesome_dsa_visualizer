@@ -46,6 +46,43 @@ body {
   line-height: 1.4;
 }
 
+.home-page {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.home-search-wrap {
+  width: min(100%, 40rem);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.home-search-input {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.22);
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+}
+
+.home-search-list {
+  position: absolute;
+  top: calc(100% + 0.55rem);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-panel);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.35);
+  max-height: min(52vh, 20rem);
+  overflow-y: auto;
+}
+
 /* VS Code–style scrollbars (Firefox) */
 * {
   scrollbar-width: thin;

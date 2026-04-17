@@ -1,5 +1,7 @@
 # DSA Visualizer: Current UI Design Draft (Concept Level)
 
+Entry flow and routing behavior are maintained in [`README.md`](../README.md) as the single source of truth. This document only summarizes UI structure and visual rules.
+
 ## 1. Product Context and Language
 
 - **Use case**: classroom projection tool for teaching demonstrations; UI language is **English**.
@@ -9,11 +11,13 @@
 
 ## 2. Global Information Architecture (Top to Bottom)
 
-The page is split into three fixed vertical layers inside the viewport. The intent is **no full-page scroll** (panel internals may scroll):
+The app has two surfaces:
 
-1. **App header**: product title and a global command entry.
-2. **Toolbar**: transport controls, speed controls, and panel visibility toggles.
-3. **Main workspace**: resizable columns for code, console, animation, variables, and optional PDF panel.
+1. **Minimal home (`/`)**: a centered, single search input for algorithm selection.
+2. **Main workspace (`/app`)**: three fixed vertical layers inside the viewport with **no full-page scroll** (panel internals may scroll):
+   - App header: product title and a global command entry.
+   - Toolbar: transport controls, speed controls, and panel visibility toggles.
+   - Main workspace: resizable columns for code, console, animation, variables, and optional PDF panel.
 
 A separate **toast layer** appears near the bottom center, above main content, and can be dismissed by click or keyboard.
 

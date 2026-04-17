@@ -20,12 +20,17 @@ import {
 import { getAlgorithmTitle } from "./lib/commandPaletteItems";
 import { commandPaletteShortcutLabel } from "./lib/platformShortcut";
 import { strings } from "./strings";
+import type { AlgorithmId } from "./lib/mockTrace";
 
 const HEADER_ICON = { size: 18, strokeWidth: 2 } as const;
 
 type PresentationMode = "off" | "native" | "overlay";
 
-export default function App() {
+type AppProps = {
+  initialAlgorithmId?: AlgorithmId;
+};
+
+export default function App({ initialAlgorithmId }: AppProps) {
   const [state, dispatch] = useReducer(
     executionReducer,
     undefined,
@@ -157,6 +162,13 @@ export default function App() {
       exitPresentation();
     }
   }, [state.panels.animation, presentationMode, exitPresentation]);
+
+  useEffect(() => {
+    if (!initialAlgorithmId || initialAlgorithmId === state.algorithmId) {
+      return;
+    }
+    dispatch({ type: "SET_ALGORITHM", algorithmId: initialAlgorithmId });
+  }, [initialAlgorithmId, state.algorithmId]);
 
   return (
     <div className="app-shell">

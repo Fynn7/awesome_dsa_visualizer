@@ -18,6 +18,12 @@ A browser-based visualization tool for teaching university-level data structures
   - Command palette to switch demos and scenarios (`Ctrl+Shift+P` / `Cmd+Shift+P`).
   - Dedicated shortcuts help overlay (opened with the `?` key) describing play/pause, step, and exit controls.
 
+- **Minimal search home**
+  - `/` shows a Google-like minimal entry page with a single algorithm search input.
+  - Search behavior and row highlighting reuse the same matching and UI style as the in-app command palette.
+  - Press `Enter` to open the top match, or choose a row with keyboard/mouse; both go to `/app`.
+  - If there is no match, you stay on `/` and see the same empty-state copy used by command palette.
+
 - **Presentation modes**
   - Native browser fullscreen presentation when available.
   - In-app overlay presentation as a fallback, with clear on-screen hints for left/right click behavior.
@@ -55,7 +61,8 @@ A browser-based visualization tool for teaching university-level data structures
 
 3. **Open the app**
    - Visit `http://localhost:5173` (or whatever port your dev server reports) in a modern desktop browser.
-   - Use the toolbar and command palette to explore available demos.
+   - At `/`, use the search input to pick a demo and enter the visualizer at `/app`.
+   - You can also open `/app` directly to enter the full workspace.
 
 ## Project Status
 
@@ -70,7 +77,7 @@ This project is an **instructor-facing classroom tool**, not a student-distribut
 For detailed product vision and interaction rules, see:
 
 - `docs/vision-dsa-visualizer.md` — overall direction, teaching context, and feature expectations.
-- `docs/ui-design.md` — current UI design draft, layout structure, color system, and animation behavior details.
+- `docs/ui-design.md` — UI design notes that summarize layout/color behavior and link back here for entry-flow specifics.
 
-These documents are the **single source of truth** for behavior and visual design; `README.md` only provides a high-level overview.
+`README.md` is the single source of truth for current entry flow and routing behavior.
 

@@ -1,6 +1,10 @@
 /** UI copy. English only for this milestone */
 
 export const strings = {
+  home: {
+    searchPlaceholder: "Type to filter demos by name…",
+    searchAria: "Algorithm search",
+  },
   header: {
     commandPlaceholder: "Search commands and scenarios…",
     commandAria: "Open command palette",
