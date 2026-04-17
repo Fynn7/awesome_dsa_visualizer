@@ -68,6 +68,10 @@ A browser-based visualization tool for teaching university-level data structures
    - You can also open `/app` directly to enter the full workspace.
    - **Development only**: open `/app?crash=1` to intentionally render the route error recovery screen (remove the query to continue).
 
+## Deployment (Vercel)
+
+The app is a single-page application with client-side routes such as `/` and `/app`. Vercel must serve `index.html` for those paths so deep links and browser refresh work. The repo root includes `vercel.json` with a rewrite rule that maps unmatched routes to `/index.html` (static assets under `dist/assets/` are still served as files). After changing this file, redeploy the project for production to pick up the update.
+
 ## Project Status
 
 This project is an **instructor-facing classroom tool**, not a student-distributed app. The current milestone focuses on:
