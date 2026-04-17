@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { AlignEndHorizontal, Search, StretchHorizontal } from "lucide-react";
+import { AlignEndHorizontal, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { AlgorithmId } from "../lib/mockTrace";
 import {
@@ -154,7 +154,6 @@ export function HomePage() {
                 const titleMatchIndices = getTitleMatchIndices(query, item);
                 const showSortIcon =
                   item.id === "insertion" || item.id === "selection";
-                const showStackIcon = item.id === "stack";
                 return (
                   <button
                     key={item.id}
@@ -171,10 +170,6 @@ export function HomePage() {
                     {showSortIcon ? (
                       <span className="home-search-row-type-icon" aria-hidden>
                         <AlignEndHorizontal size={15} strokeWidth={2} />
-                      </span>
-                    ) : showStackIcon ? (
-                      <span className="home-search-row-type-icon" aria-hidden>
-                        <StretchHorizontal size={15} strokeWidth={2} />
                       </span>
                     ) : null}
                     <HighlightedTitle

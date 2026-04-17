@@ -10,8 +10,6 @@ You are planning a visualization tool for university-level DSA (Data Structures 
 
 Pointer elements that move with index changes in the animation panel (`i`, `j`, `j-1`, selection sort `min`, etc.), including transition behavior, enter animation (`hidden -> visible`), visibility recovery during rapid step navigation, and de-overlap rules, are specified in the English source of truth: **[ui-design.md §9](ui-design.md)**.
 
-The `first/oldfirst` pointer layering and fit-stable envelope behavior for `Stack (linked list)` are also defined in **[ui-design.md §9](ui-design.md)**.
-
 - Code editor area
 - Console output area
 - Animation area

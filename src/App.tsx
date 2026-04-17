@@ -289,7 +289,6 @@ export default function App({ initialAlgorithmId }: AppProps) {
       <SettingsModal
         open={settingsOpen}
         onClose={closeSettings}
-        algorithmId={state.algorithmId}
         showArrayIndices={state.showArrayIndices}
         enableAnimationScroll={state.enableAnimationScroll}
         animationFitAllowUpscale={state.animationFitAllowUpscale}

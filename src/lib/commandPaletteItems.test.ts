@@ -37,7 +37,7 @@ describe("getFilteredPaletteItems", () => {
   });
 
   it("filters out items whose title does not match each query piece", () => {
-    expect(queryIds("sta")).toEqual(["stack"]);
+    expect(queryIds("sel")).toEqual(["selection"]);
   });
 });
 

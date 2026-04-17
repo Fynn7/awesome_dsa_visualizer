@@ -20,11 +20,6 @@ const PALETTE_ITEMS: PaletteItem[] = [
     title: "Selection sort",
     searchBlob: "sorting sel demo algorithm in-place o n2 minimum swap",
   },
-  {
-    id: "stack",
-    title: "Stack (linked list)",
-    searchBlob: "stack push pop linked list node lifo lifo data structure demo",
-  },
 ];
 
 function getSearchCandidates(item: PaletteItem): string[] {
