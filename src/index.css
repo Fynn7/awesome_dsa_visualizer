@@ -1072,6 +1072,7 @@ button {
 }
 
 .viz-stack-row {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -1083,6 +1084,18 @@ button {
   align-items: center;
   transform: translateX(0);
   backface-visibility: hidden;
+}
+
+.viz-stack-item--entering {
+  animation: viz-stack-item-enter
+    var(--viz-pointer-enter-duration, 240ms)
+    cubic-bezier(0.22, 1, 0.36, 1) 1;
+}
+
+.viz-stack-item--exiting {
+  animation: viz-stack-item-exit
+    var(--viz-pointer-enter-duration, 240ms)
+    cubic-bezier(0.22, 1, 0.36, 1) 1 forwards;
 }
 
 .viz-stack-node {
@@ -1106,6 +1119,18 @@ button {
   align-items: center;
   margin: 0 0.32rem;
   color: color-mix(in srgb, var(--accent) 65%, #d7fff8 35%);
+}
+
+.viz-stack-link--entering {
+  animation: viz-stack-link-enter
+    var(--viz-pointer-enter-duration, 240ms)
+    cubic-bezier(0.22, 1, 0.36, 1) 1;
+}
+
+.viz-stack-link--exiting {
+  animation: viz-stack-link-exit
+    var(--viz-pointer-enter-duration, 240ms)
+    cubic-bezier(0.22, 1, 0.36, 1) 1 forwards;
 }
 
 .viz-stack-next {
@@ -1260,6 +1285,54 @@ button {
   100% {
     opacity: 1;
     transform: translateX(-50%) scale(1);
+  }
+}
+
+@keyframes viz-stack-item-enter {
+  0% {
+    opacity: 0;
+    transform: translateX(0) scale(0.92);
+  }
+  65% {
+    opacity: 1;
+    transform: translateX(0) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes viz-stack-item-exit {
+  0% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(0) scale(0.92);
+  }
+}
+
+@keyframes viz-stack-link-enter {
+  0% {
+    opacity: 0;
+    transform: translateX(-0.25rem);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes viz-stack-link-exit {
+  0% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(0.2rem);
   }
 }
 

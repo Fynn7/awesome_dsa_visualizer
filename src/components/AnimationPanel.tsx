@@ -1,6 +1,7 @@
 import { AppWindow, Maximize2 } from "lucide-react";
 import type {
   AlgorithmId,
+  MockStackNodeViz,
   MockStackLinkedListViz,
   MockStep,
   MockViz,
@@ -242,7 +243,9 @@ export function AnimationPanel({
   const pointerJMinus1Ref = useRef<HTMLSpanElement | null>(null);
   const pointerMinRef = useRef<HTMLSpanElement | null>(null);
   const stackTrackRef = useRef<HTMLDivElement | null>(null);
+  const stackItemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const stackNodeRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const stackLinkRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const stackFirstPointerRef = useRef<HTMLSpanElement | null>(null);
   const stackOldFirstPointerRef = useRef<HTMLSpanElement | null>(null);
   const prevStackRectsRef = useRef<Map<string, number>>(new Map());
@@ -263,12 +266,23 @@ export function AnimationPanel({
   const stackPointerExitTimerByKeyRef = useRef<
     Partial<Record<StackPointerKey, number>>
   >({});
+  const stackNodeEnterTimersRef = useRef<number[]>([]);
+  const stackNodeExitTimerByKeyRef = useRef<Record<string, number>>({});
+  const stackLinkEnterTimersRef = useRef<number[]>([]);
+  const stackLinkExitTimerByKeyRef = useRef<Record<string, number>>({});
   const pointerTransitionStateRef = useRef(
     createPointerTransitionMap(ARRAY_POINTER_KEYS)
   );
   const stackPointerTransitionStateRef = useRef(
     createPointerTransitionMap(STACK_POINTER_KEYS)
   );
+  const stackNodeTransitionStateRef = useRef<
+    Record<string, { mounted: boolean; exiting: boolean }>
+  >({});
+  const stackLinkTransitionStateRef = useRef<
+    Record<string, { mounted: boolean; exiting: boolean }>
+  >({});
+  const stackNodeSnapshotRef = useRef<Record<string, MockStackNodeViz>>({});
   const [, setPointerTransitionRevision] = useState(0);
   const prevPointerVisibleRef = useRef<Record<PointerKey, boolean>>({
     i: false,
@@ -319,6 +333,27 @@ export function AnimationPanel({
     () => computeStackPointerLayout(stackLinkedList, stackStableLevelCount),
     [stackLinkedList, stackStableLevelCount]
   );
+  const visibleStackNodes = (() => {
+    if (!stackLinkedList) return [] as MockStackNodeViz[];
+    const map = stackNodeSnapshotRef.current;
+    for (const node of stackLinkedList.nodes) {
+      map[node.id] = node;
+    }
+    const ordered: MockStackNodeViz[] = [];
+    const seen = new Set<string>();
+    for (const node of stackLinkedList.nodes) {
+      ordered.push(node);
+      seen.add(node.id);
+    }
+    for (const [id, state] of Object.entries(stackNodeTransitionStateRef.current)) {
+      if (!state.mounted || seen.has(id)) continue;
+      const snap = map[id];
+      if (snap) {
+        ordered.push(snap);
+      }
+    }
+    return ordered;
+  })();
 
   const bars = useMemo(() => {
     const prevBars = prevBarsRef.current;
@@ -709,7 +744,9 @@ export function AnimationPanel({
         el.classList.remove("viz-pointer--exiting");
       }
       el.style.left = `${newCenter}px`;
-      const shouldFlip = shouldAnimatePointerFlip(prevEntry?.center, newCenter);
+      const shouldEnter = !prevVisible[key];
+      const shouldFlip =
+        !shouldEnter && shouldAnimatePointerFlip(prevEntry?.center, newCenter);
 
       if (shouldFlip) {
         let visualCenter = prevEntry?.center ?? newCenter;
@@ -718,19 +755,18 @@ export function AnimationPanel({
         if (rectBefore && trackRect) {
            visualCenter = (rectBefore.left + rectBefore.width / 2 - trackRect.left) / layoutScale;
         }
-        const delta = visualCenter - newCenter;
+        const deltaX = visualCenter - newCenter;
         
         el.style.willChange = "transform";
         el.style.transition = "none";
-        el.style.transform = `translateX(calc(-50% + ${delta}px))`;
+        el.style.transform = `translate(calc(-50% + ${deltaX}px), 0)`;
         el.getBoundingClientRect();
         flipEls.push(el);
       } else {
         el.style.willChange = "";
         el.style.transition = "";
-        el.style.transform = "translateX(-50%)";
+        el.style.transform = "translate(-50%, 0)";
       }
-      const shouldEnter = !prevVisible[key];
       if (shouldEnter) {
         enterEls.push(el);
       }
@@ -775,7 +811,7 @@ export function AnimationPanel({
       startFlip: () => {
         for (const el of flipEls) {
           el.style.transition = `transform ${duration}ms ${ease}`;
-          el.style.transform = "translateX(-50%)";
+          el.style.transform = "translate(-50%, 0)";
         }
         pointerFlipRafRef.current = null;
       },
@@ -866,6 +902,25 @@ export function AnimationPanel({
         }
       }
       stackPointerExitTimerByKeyRef.current = {};
+      for (const timer of stackNodeEnterTimersRef.current) {
+        window.clearTimeout(timer);
+      }
+      stackNodeEnterTimersRef.current = [];
+      for (const timer of Object.values(stackNodeExitTimerByKeyRef.current)) {
+        window.clearTimeout(timer);
+      }
+      stackNodeExitTimerByKeyRef.current = {};
+      for (const timer of stackLinkEnterTimersRef.current) {
+        window.clearTimeout(timer);
+      }
+      stackLinkEnterTimersRef.current = [];
+      for (const timer of Object.values(stackLinkExitTimerByKeyRef.current)) {
+        window.clearTimeout(timer);
+      }
+      stackLinkExitTimerByKeyRef.current = {};
+      stackNodeTransitionStateRef.current = {};
+      stackLinkTransitionStateRef.current = {};
+      stackNodeSnapshotRef.current = {};
       return;
     }
 
@@ -881,6 +936,22 @@ export function AnimationPanel({
       window.clearTimeout(timer);
     }
     pointerEnterTimersRef.current = [];
+    for (const timer of stackNodeEnterTimersRef.current) {
+      window.clearTimeout(timer);
+    }
+    stackNodeEnterTimersRef.current = [];
+    for (const timer of Object.values(stackNodeExitTimerByKeyRef.current)) {
+      window.clearTimeout(timer);
+    }
+    stackNodeExitTimerByKeyRef.current = {};
+    for (const timer of stackLinkEnterTimersRef.current) {
+      window.clearTimeout(timer);
+    }
+    stackLinkEnterTimersRef.current = [];
+    for (const timer of Object.values(stackLinkExitTimerByKeyRef.current)) {
+      window.clearTimeout(timer);
+    }
+    stackLinkExitTimerByKeyRef.current = {};
     for (const key of STACK_POINTER_KEYS) {
       const timer = stackPointerExitTimerByKeyRef.current[key];
       if (typeof timer === "number") {
@@ -900,15 +971,15 @@ export function AnimationPanel({
 
     // Pass 2: READ bounds
     const visualStackRects = new Map<string, number>();
-    for (const node of stackLinkedList.nodes) {
-      const el = stackNodeRefs.current[node.id];
+    for (const node of visibleStackNodes) {
+      const el = stackItemRefs.current[node.id];
       if (!el) continue;
       visualStackRects.set(node.id, el.getBoundingClientRect().left);
     }
 
     // Pass 3: WRITE clear styles
-    for (const node of stackLinkedList.nodes) {
-      const el = stackNodeRefs.current[node.id];
+    for (const node of visibleStackNodes) {
+      const el = stackItemRefs.current[node.id];
       if (!el) continue;
       el.style.transition = "";
       el.style.transform = "";
@@ -917,14 +988,17 @@ export function AnimationPanel({
 
     // Pass 4: READ correct rest geometry
     const currentRects = new Map<string, number>();
-    for (const node of stackLinkedList.nodes) {
-      const el = stackNodeRefs.current[node.id];
+    for (const node of visibleStackNodes) {
+      const el = stackItemRefs.current[node.id];
       if (!el) continue;
       currentRects.set(node.id, el.getBoundingClientRect().left);
     }
 
     const pointerById = new Map(
       stackLinkedList.pointers.map((ptr) => [ptr.id, ptr.nodeId] as const)
+    );
+    const hasAnyActiveStackPointer = stackLinkedList.pointers.some(
+      (ptr) => ptr.nodeId !== null
     );
     const firstNodeId = pointerById.get("first");
     const oldfirstNodeId = pointerById.get("oldfirst");
@@ -945,36 +1019,158 @@ export function AnimationPanel({
       oldfirstCenter = centerOfNode(oldfirstNodeId);
     }
 
+    const moved: Array<{ el: HTMLDivElement; delta: number }> = [];
     if (prevStackRectsRef.current.size > 0) {
-      const moved: Array<{ el: HTMLDivElement; delta: number }> = [];
-      for (const node of stackLinkedList.nodes) {
+      for (const node of visibleStackNodes) {
         if (!prevStackRectsRef.current.has(node.id)) continue;
         const visualLeft = visualStackRects.get(node.id);
         const nextLeft = currentRects.get(node.id);
         if (visualLeft === undefined || nextLeft === undefined) continue;
         const delta = visualLeft - nextLeft;
         if (Math.abs(delta) < 0.5) continue;
-        const el = stackNodeRefs.current[node.id];
+        const el = stackItemRefs.current[node.id];
         if (!el) continue;
         moved.push({ el, delta });
       }
+    }
 
-      if (moved.length > 0) {
-        for (const { el, delta } of moved) {
-          el.style.willChange = "transform";
-          el.style.transition = "none";
-          el.style.transform = `translateX(${delta / layoutScale}px)`;
-          el.getBoundingClientRect();
-        }
-
-        stackRafRef.current = requestAnimationFrame(() => {
-          for (const { el } of moved) {
-            el.style.transition = `transform ${flipDurationMs}ms cubic-bezier(0.22, 1, 0.36, 1)`;
-            el.style.transform = "translateX(0)";
-          }
-          stackRafRef.current = null;
+    const stageStackNode = (node: MockStackNodeViz) => {
+      const key = node.id;
+      const transitionState =
+        stackNodeTransitionStateRef.current[key] ??
+        (stackNodeTransitionStateRef.current[key] = {
+          mounted: false,
+          exiting: false,
         });
+      const pendingExit = stackNodeExitTimerByKeyRef.current[key];
+      if (typeof pendingExit === "number") {
+        window.clearTimeout(pendingExit);
+        delete stackNodeExitTimerByKeyRef.current[key];
       }
+      const el = stackItemRefs.current[key];
+      if (stackLinkedList.nodes.some((it) => it.id === key)) {
+        const shouldEnter = !transitionState.mounted;
+        const wasExiting = transitionState.exiting;
+        transitionState.mounted = true;
+        transitionState.exiting = false;
+        if (!el) return;
+        if (wasExiting) {
+          el.classList.remove("viz-stack-item--exiting");
+        }
+        if (shouldEnter) {
+          el.classList.remove("viz-stack-item--entering");
+          void el.offsetHeight;
+          el.classList.add("viz-stack-item--entering");
+          const timer = window.setTimeout(() => {
+            el.classList.remove("viz-stack-item--entering");
+          }, pointerEnterDurationMs + 120);
+          stackNodeEnterTimersRef.current.push(timer);
+        }
+      } else if (el && transitionState.mounted && !transitionState.exiting) {
+        // In rapid step-back (2->1) or drain-to-empty paths, lingering exits keep
+        // the remaining layout offset. Complete non-current exits immediately.
+        if (stackLinkedList.nodes.length <= 1) {
+          transitionState.mounted = false;
+          transitionState.exiting = false;
+          el.classList.remove("viz-stack-item--entering");
+          el.classList.remove("viz-stack-item--exiting");
+          bumpPointerTransitionRevision();
+          return;
+        }
+        transitionState.exiting = true;
+        el.classList.remove("viz-stack-item--entering");
+        el.classList.add("viz-stack-item--exiting");
+        const timer = window.setTimeout(() => {
+          transitionState.mounted = false;
+          transitionState.exiting = false;
+          delete stackNodeExitTimerByKeyRef.current[key];
+          bumpPointerTransitionRevision();
+        }, pointerEnterDurationMs);
+        stackNodeExitTimerByKeyRef.current[key] = timer;
+      }
+    };
+
+    const allNodeIds = new Set<string>([
+      ...Object.keys(stackNodeTransitionStateRef.current),
+      ...visibleStackNodes.map((n) => n.id),
+      ...stackLinkedList.nodes.map((n) => n.id),
+    ]);
+    for (const id of allNodeIds) {
+      const node = stackNodeSnapshotRef.current[id];
+      if (node) {
+        stageStackNode(node);
+      }
+    }
+
+    const currentLinkKeys = new Set(
+      stackLinkedList.nodes
+        .filter((node) => node.nextId)
+        .map((node) => `${node.id}->${node.nextId}`)
+    );
+    const allLinkKeys = new Set<string>([
+      ...Object.keys(stackLinkTransitionStateRef.current),
+      ...currentLinkKeys,
+    ]);
+    for (const key of allLinkKeys) {
+      const transitionState =
+        stackLinkTransitionStateRef.current[key] ??
+        (stackLinkTransitionStateRef.current[key] = {
+          mounted: false,
+          exiting: false,
+        });
+      const pendingExit = stackLinkExitTimerByKeyRef.current[key];
+      if (typeof pendingExit === "number") {
+        window.clearTimeout(pendingExit);
+        delete stackLinkExitTimerByKeyRef.current[key];
+      }
+      const linkEl = stackLinkRefs.current[key];
+      if (currentLinkKeys.has(key)) {
+        const shouldEnter = !transitionState.mounted;
+        const wasExiting = transitionState.exiting;
+        transitionState.mounted = true;
+        transitionState.exiting = false;
+        if (!linkEl) continue;
+        if (wasExiting) {
+          linkEl.classList.remove("viz-stack-link--exiting");
+        }
+        if (shouldEnter) {
+          linkEl.classList.remove("viz-stack-link--entering");
+          void linkEl.offsetHeight;
+          linkEl.classList.add("viz-stack-link--entering");
+          const timer = window.setTimeout(() => {
+            linkEl.classList.remove("viz-stack-link--entering");
+          }, pointerEnterDurationMs + 120);
+          stackLinkEnterTimersRef.current.push(timer);
+        }
+      } else if (linkEl && transitionState.mounted && !transitionState.exiting) {
+        transitionState.exiting = true;
+        linkEl.classList.remove("viz-stack-link--entering");
+        linkEl.classList.add("viz-stack-link--exiting");
+        const timer = window.setTimeout(() => {
+          transitionState.mounted = false;
+          transitionState.exiting = false;
+          delete stackLinkExitTimerByKeyRef.current[key];
+          bumpPointerTransitionRevision();
+        }, pointerEnterDurationMs);
+        stackLinkExitTimerByKeyRef.current[key] = timer;
+      }
+    }
+
+    if (moved.length > 0) {
+      for (const { el, delta } of moved) {
+        el.style.willChange = "transform";
+        el.style.transition = "none";
+        el.style.transform = `translateX(${delta / layoutScale}px)`;
+        el.getBoundingClientRect();
+      }
+
+      stackRafRef.current = requestAnimationFrame(() => {
+        for (const { el } of moved) {
+          el.style.transition = `transform ${flipDurationMs}ms cubic-bezier(0.22, 1, 0.36, 1)`;
+          el.style.transform = "translateX(0)";
+        }
+        stackRafRef.current = null;
+      });
     }
 
     const prevPtr = prevStackPointerMetaRef.current;
@@ -1004,6 +1200,14 @@ export function AnimationPanel({
         nextVisible[key] = false;
         if (el) {
           el.classList.remove("viz-pointer--entering");
+          // When the step has no stack pointers at all (e.g. empty stack frames),
+          // pointer overlays should disappear immediately without a trailing exit animation.
+          if (!hasAnyActiveStackPointer) {
+            el.classList.remove("viz-pointer--exiting");
+            completePointerExit(stackPointerTransitionStateRef.current, key);
+            bumpPointerTransitionRevision();
+            return;
+          }
           if (beginPointerExit(stackPointerTransitionStateRef.current, key)) {
             el.classList.add("viz-pointer--exiting");
             const timer = window.setTimeout(() => {
@@ -1024,26 +1228,38 @@ export function AnimationPanel({
       if (bottomRem !== undefined) {
         el.style.bottom = `${bottomRem}rem`;
       }
-      const shouldFlip = shouldAnimatePointerFlip(prevEntry?.center, center);
+      const shouldEnter = !prevVisible[key];
+      const rectBefore = preClearStackPointers[key];
+      const trackRect = stackTrackRef.current?.getBoundingClientRect();
+      const rectAfter = el.getBoundingClientRect();
+      const currentCenter = trackRect
+        ? (rectAfter.left + rectAfter.width / 2 - trackRect.left) / layoutScale
+        : center;
+      const visualCenter =
+        rectBefore && trackRect
+          ? (rectBefore.left + rectBefore.width / 2 - trackRect.left) /
+            layoutScale
+          : prevEntry?.center ?? currentCenter;
+      const deltaX = visualCenter - currentCenter;
+      const deltaY =
+        rectBefore === undefined ? 0 : (rectBefore.top - rectAfter.top) / layoutScale;
+      const shouldFlip =
+        !shouldEnter &&
+        (Math.abs(deltaY) >= 0.5 ||
+          shouldAnimatePointerFlip(prevEntry?.center, center) ||
+          shouldAnimatePointerFlip(visualCenter, currentCenter));
       if (shouldFlip) {
-        let visualCenter = prevEntry?.center ?? center;
-        const rectBefore = preClearStackPointers[key];
-        const trackRect = stackTrackRef.current?.getBoundingClientRect();
-        if (rectBefore && trackRect) {
-           visualCenter = (rectBefore.left + rectBefore.width / 2 - trackRect.left) / layoutScale;
-        }
-        const delta = visualCenter - center;
         el.style.willChange = "transform";
         el.style.transition = "none";
-        el.style.transform = `translateX(calc(-50% + ${delta}px))`;
+        el.style.transform = `translate(calc(-50% + ${deltaX}px), ${deltaY}px)`;
         el.getBoundingClientRect();
         flipEls.push(el);
       } else {
         el.style.willChange = "";
         el.style.transition = "";
-        el.style.transform = "translateX(-50%)";
+        el.style.transform = "translate(-50%, 0)";
       }
-      if (!prevVisible[key]) {
+      if (shouldEnter) {
         enterEls.push(el);
       }
       nextVisible[key] = true;
@@ -1089,7 +1305,7 @@ export function AnimationPanel({
       startFlip: () => {
         for (const el of flipEls) {
           el.style.transition = `transform ${flipDurationMs}ms cubic-bezier(0.22, 1, 0.36, 1)`;
-          el.style.transform = "translateX(-50%)";
+          el.style.transform = "translate(-50%, 0)";
         }
         stackPointerFlipRafRef.current = null;
       },
@@ -1123,6 +1339,22 @@ export function AnimationPanel({
         window.clearTimeout(timer);
       }
       pointerEnterTimersRef.current = [];
+      for (const timer of stackNodeEnterTimersRef.current) {
+        window.clearTimeout(timer);
+      }
+      stackNodeEnterTimersRef.current = [];
+      for (const timer of Object.values(stackNodeExitTimerByKeyRef.current)) {
+        window.clearTimeout(timer);
+      }
+      stackNodeExitTimerByKeyRef.current = {};
+      for (const timer of stackLinkEnterTimersRef.current) {
+        window.clearTimeout(timer);
+      }
+      stackLinkEnterTimersRef.current = [];
+      for (const timer of Object.values(stackLinkExitTimerByKeyRef.current)) {
+        window.clearTimeout(timer);
+      }
+      stackLinkExitTimerByKeyRef.current = {};
       for (const key of STACK_POINTER_KEYS) {
         const timer = stackPointerExitTimerByKeyRef.current[key];
         if (typeof timer === "number") {
@@ -1140,6 +1372,7 @@ export function AnimationPanel({
     stackPointerLayout.bottomById.first,
     stackPointerLayout.bottomById.oldfirst,
     stackLinkedList,
+    visibleStackNodes,
     bumpPointerTransitionRevision,
   ]);
 
@@ -1393,8 +1626,19 @@ export function AnimationPanel({
                           <div className="viz-stack-empty">Empty stack</div>
                         ) : (
                           <div className="viz-stack-row">
-                            {stackLinkedList.nodes.map((node) => (
-                              <div key={node.id} className="viz-stack-item">
+                            {visibleStackNodes.map((node) => (
+                              <div
+                                key={node.id}
+                                className={`viz-stack-item${
+                                  stackNodeTransitionStateRef.current[node.id]
+                                    ?.exiting
+                                    ? " viz-stack-item--exiting"
+                                    : ""
+                                }`}
+                                ref={(el) => {
+                                  stackItemRefs.current[node.id] = el;
+                                }}
+                              >
                                 <div
                                   className="viz-stack-node"
                                   ref={(el) => {
@@ -1403,8 +1647,24 @@ export function AnimationPanel({
                                 >
                                   {node.value}
                                 </div>
-                                {node.nextId ? (
-                                  <div className="viz-stack-link" aria-hidden>
+                                {(node.nextId ||
+                                  stackLinkTransitionStateRef.current[
+                                    `${node.id}->${node.nextId}`
+                                  ]?.mounted) && node.nextId ? (
+                                  <div
+                                    className={`viz-stack-link${
+                                      stackLinkTransitionStateRef.current[
+                                        `${node.id}->${node.nextId}`
+                                      ]?.exiting
+                                        ? " viz-stack-link--exiting"
+                                        : ""
+                                    }`}
+                                    aria-hidden
+                                    ref={(el) => {
+                                      stackLinkRefs.current[`${node.id}->${node.nextId}`] =
+                                        el;
+                                    }}
+                                  >
                                     <span className="viz-stack-next">⟶</span>
                                   </div>
                                 ) : null}

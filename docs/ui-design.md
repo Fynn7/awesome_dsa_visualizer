@@ -120,9 +120,13 @@ Each panel uses a consistent card structure:
   - Text in the animation area should not be user-selectable.
   - Sorting visuals use bar heights proportional to values.
   - Overlaid pointers (`i`, `j`, `j-1`, `min`) share horizontal transition timing with bar FLIP movement and support first-appearance enter animation.
+  - **Movement policy (authoritative)**: all pointer/node position changes in `AnimationPanel` must animate from the last painted on-screen position to the new target position (FLIP from visual origin to destination), never teleport then animate.
+  - Stack pointers (`first`, `oldfirst`) must use 2D FLIP (`x` + `y`) so transitions with simultaneous horizontal movement and layer-height changes still preserve visual origin continuity (for example, `Step 8 -> Step 9`).
+  - Enter/exit effects keep existing style and timing; this policy applies specifically to movement transitions.
   - On rapid step changes, pointer re-entry must clear stale exit styles to avoid invisible-but-mounted race conditions.
   - `min` must not occupy bar-layout slots, to prevent fit jitter.
   - `Stack (linked list)` visualization uses left-to-right square nodes with `first` at the left; show `first/oldfirst` pointers only.
+  - `Stack (linked list)` nodes and `next` arrows reuse the same smooth timing path as pointer transitions (shared FLIP-style movement plus enter/exit timing) for push/pop/step jumps/reset.
   - Array index labels are hidden for stack algorithms.
   - Pointer stacking rule: keep a stable baseline when pointers target different nodes; stack upward only when targeting the same node.
   - Settings include internal scroll mode and fit-to-viewport mode with stable trace-based sizing.
