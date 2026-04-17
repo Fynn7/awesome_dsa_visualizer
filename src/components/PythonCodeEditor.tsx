@@ -8,6 +8,7 @@ import {
 import { monaco } from "../monaco/monacoLoader";
 import type { LoopPulseRange } from "../lib/mockTrace";
 import { strings } from "../strings";
+import { PanelSkeleton } from "./LoadingState";
 
 type Props = {
   value: string;
@@ -15,6 +16,7 @@ type Props = {
   activeLine: number;
   stepIndex: number;
   loopPulseRange: LoopPulseRange | null;
+  onReadyChange?: (ready: boolean) => void;
 };
 
 const LOOP_PULSE_MS = 450;
@@ -124,6 +126,7 @@ export function PythonCodeEditor({
   activeLine,
   stepIndex,
   loopPulseRange,
+  onReadyChange,
 }: Props) {
   const [ready, setReady] = useState(false);
   const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
@@ -132,6 +135,10 @@ export function PythonCodeEditor({
   );
   const loopPulseDecorationsRef =
     useRef<MonacoEditor.IEditorDecorationsCollection | null>(null);
+
+  useEffect(() => {
+    onReadyChange?.(ready);
+  }, [onReadyChange, ready]);
 
   useEffect(() => {
     let cancelled = false;
@@ -195,7 +202,11 @@ export function PythonCodeEditor({
   );
 
   if (!ready) {
-    return <div className="monaco-full monaco-loading" aria-hidden="true" />;
+    return (
+      <div className="monaco-full monaco-loading" aria-busy="true">
+        <PanelSkeleton label={strings.loading.editorInit} rows={5} />
+      </div>
+    );
   }
 
   return (

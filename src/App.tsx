@@ -6,13 +6,14 @@ import {
   useRef,
   useState,
 } from "react";
-import { HelpCircle, Settings } from "lucide-react";
+import { HelpCircle, Search, Settings } from "lucide-react";
 import { CommandPalette } from "./components/CommandPalette";
 import { KeyboardHelpModal } from "./components/KeyboardHelpModal";
 import { PresentationShell } from "./components/PresentationShell";
 import { SettingsModal } from "./components/SettingsModal";
 import { Toolbar } from "./components/Toolbar";
 import { Workspace } from "./components/Workspace";
+import { BlockingLoadingOverlay } from "./components/LoadingState";
 import {
   createInitialState,
   executionReducer,
@@ -20,12 +21,17 @@ import {
 import { getAlgorithmTitle } from "./lib/commandPaletteItems";
 import { commandPaletteShortcutLabel } from "./lib/platformShortcut";
 import { strings } from "./strings";
+import type { AlgorithmId } from "./lib/mockTrace";
 
 const HEADER_ICON = { size: 18, strokeWidth: 2 } as const;
 
 type PresentationMode = "off" | "native" | "overlay";
 
-export default function App() {
+type AppProps = {
+  initialAlgorithmId?: AlgorithmId;
+};
+
+export default function App({ initialAlgorithmId }: AppProps) {
   const [state, dispatch] = useReducer(
     executionReducer,
     undefined,
@@ -39,6 +45,7 @@ export default function App() {
   const [presentationNotice, setPresentationNotice] = useState<string | null>(
     null
   );
+  const [workspaceBusy, setWorkspaceBusy] = useState(true);
   const presentationShellRef = useRef<HTMLDivElement | null>(null);
   const commandPaletteTriggerRef = useRef<HTMLButtonElement>(null);
   const settingsTriggerRef = useRef<HTMLButtonElement>(null);
@@ -158,8 +165,15 @@ export default function App() {
     }
   }, [state.panels.animation, presentationMode, exitPresentation]);
 
+  useEffect(() => {
+    if (!initialAlgorithmId) {
+      return;
+    }
+    dispatch({ type: "SET_ALGORITHM", algorithmId: initialAlgorithmId });
+  }, [initialAlgorithmId]);
+
   return (
-    <div className="app-shell">
+    <div className="app-shell" aria-busy={workspaceBusy}>
       <header className="app-header">
         <h1 className="app-header-title">
           {getAlgorithmTitle(state.algorithmId)}
@@ -172,6 +186,9 @@ export default function App() {
             aria-label={strings.header.commandAria}
             onClick={() => setCommandPaletteOpen(true)}
           >
+            <span className="command-palette-trigger-icon" aria-hidden>
+              <Search size={14} strokeWidth={2} />
+            </span>
             <span className="command-palette-trigger-placeholder">
               {strings.header.commandPlaceholder}
             </span>
@@ -204,8 +221,13 @@ export default function App() {
           presentationMode={presentationMode}
           onPresentNative={enterPresentationNative}
           onPresentOverlay={enterPresentationOverlay}
+          onBusyChange={setWorkspaceBusy}
         />
       </main>
+      <BlockingLoadingOverlay
+        active={workspaceBusy}
+        label={strings.loading.appBoot}
+      />
       {presentationMode !== "off" && state.panels.animation ? (
         <PresentationShell
           ref={presentationShellRef}
@@ -267,7 +289,6 @@ export default function App() {
       <SettingsModal
         open={settingsOpen}
         onClose={closeSettings}
-        algorithmId={state.algorithmId}
         showArrayIndices={state.showArrayIndices}
         enableAnimationScroll={state.enableAnimationScroll}
         animationFitAllowUpscale={state.animationFitAllowUpscale}

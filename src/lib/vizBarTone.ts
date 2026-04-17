@@ -4,6 +4,8 @@ import type { MockViz } from "./mockTrace";
  * Bar emphasis in AnimationPanel (min > key/hl > sorted > neutral).
  * `sortedExclusiveEnd` is used for selection sort: indices `< sortedExclusiveEnd`
  * are the fixed left prefix `[0, i)` for the current outer `i`.
+ * For insertion sort, only the completion step (line 18) sets it to the array
+ * length so every bar can use the sorted tone without highlights.
  */
 export type BarTone = "key" | "hl" | "min" | "neutral" | "sorted";
 

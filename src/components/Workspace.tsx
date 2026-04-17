@@ -3,7 +3,7 @@ import {
   PanelGroup,
   PanelResizeHandle,
 } from "react-resizable-panels";
-import { useMemo, type Dispatch, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type Dispatch, type ReactNode } from "react";
 import type { ExecutionState } from "../lib/executionReducer";
 import type { ExecutionAction } from "../lib/executionReducer";
 import { getCurrentStep } from "../lib/executionReducer";
@@ -23,6 +23,7 @@ type Props = {
   presentationMode: PresentationMode;
   onPresentNative: () => void;
   onPresentOverlay: () => void;
+  onBusyChange?: (busy: boolean) => void;
 };
 
 type Item = { id: string; node: ReactNode; size: number; order: number };
@@ -76,6 +77,7 @@ export function Workspace({
   presentationMode,
   onPresentNative,
   onPresentOverlay,
+  onBusyChange,
 }: Props) {
   const { panels } = state;
   const step = getCurrentStep(state);
@@ -94,6 +96,8 @@ export function Workspace({
       getLoopPulseRange(state.trace, state.stepIndex, state.loopPulseRules),
     [state.trace, state.stepIndex, state.loopPulseRules]
   );
+  const [editorReady, setEditorReady] = useState(false);
+  const [animationReady, setAnimationReady] = useState(false);
 
   const leftItems: Item[] = [];
   if (panels.editor) {
@@ -108,6 +112,7 @@ export function Workspace({
           activeLine={step.line}
           stepIndex={state.stepIndex}
           loopPulseRange={loopPulseRange}
+          onReadyChange={setEditorReady}
         />
       ),
     });
@@ -141,6 +146,7 @@ export function Workspace({
           onPresentNative={onPresentNative}
           onPresentOverlay={onPresentOverlay}
           stepPointerNavigation={stepPointerNavigation}
+          onReadyChange={setAnimationReady}
         />
       ),
     });
@@ -181,6 +187,13 @@ export function Workspace({
 
   const showLeft = leftItems.length > 0;
   const showRight = rightItems.length > 0;
+  const workspaceBusy =
+    (panels.editor && !editorReady) ||
+    (panels.animation && presentationMode === "off" && !animationReady);
+
+  useEffect(() => {
+    onBusyChange?.(workspaceBusy);
+  }, [onBusyChange, workspaceBusy]);
 
   if (!showLeft && !showRight) {
     return (

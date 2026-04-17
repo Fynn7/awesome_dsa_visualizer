@@ -1,6 +1,17 @@
 /** UI copy. English only for this milestone */
 
 export const strings = {
+  loading: {
+    routeTransition: "Opening algorithm workspace…",
+    appBoot: "Preparing workspace…",
+    editorInit: "Loading code editor…",
+    animationInit: "Preparing animation panel…",
+  },
+  home: {
+    searchPlaceholder: "Type to filter demos by name…",
+    searchAria: "Algorithm search",
+    searchIconAria: "Open selected algorithm",
+  },
   header: {
     commandPlaceholder: "Search commands and scenarios…",
     commandAria: "Open command palette",
@@ -68,12 +79,25 @@ export const strings = {
     rowNext: "Next step",
     /** Shown between keycaps; alternatives, not a chord */
     rowNextKeySep: "/",
-    rowNextAria: "Enter or Right arrow",
+    rowNextAria: "Enter, Right arrow, or Left click",
     rowPrev: "Previous step",
+    rowPrevAria: "Left arrow or Right click",
+    mouseLeftClick: "Left click",
+    mouseRightClick: "Right click",
     presentGroup: "While presenting",
   },
   emptyAllPanels:
     "All panels are hidden. Use the toolbar to show at least one panel.",
+  /** Full-screen recovery when a route throws (see `RouteErrorPage`). */
+  routeError: {
+    title: "Something went wrong",
+    description:
+      "The app hit an unexpected error. You can return home or try reloading this page.",
+    backHome: "Back to home",
+    reload: "Reload page",
+    /** `<details>` summary for dev-only stack trace */
+    detailsSummary: "Technical details",
+  },
   presentation: {
     /** Animation panel: enter browser fullscreen presentation */
     presentNative: "Browser fullscreen presentation",

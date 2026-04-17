@@ -180,7 +180,7 @@ export const PresentationShell = forwardRef<HTMLDivElement, Props>(
         >
           {hintKind ? (
             <div
-              className="presentation-play-hint-layer"
+              className="presentation-play-hint-layer presentation-play-hint-layer--top-right"
               aria-live="polite"
               aria-atomic="true"
             >

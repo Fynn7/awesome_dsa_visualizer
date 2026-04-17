@@ -10,12 +10,12 @@ function kindsFor(source: string, identifier: string) {
 
 describe("classifyPythonSemanticSymbols", () => {
   it("marks class declarations and usages as class", () => {
-    const source = `class Stack:
+    const source = `class Demo:
     class Node:
         pass
 
-s = Stack()`;
-    expect(kindsFor(source, "Stack")).toContain("class");
+s = Demo()`;
+    expect(kindsFor(source, "Demo")).toContain("class");
     expect(kindsFor(source, "Node")).toContain("class");
   });
 

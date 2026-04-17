@@ -7,12 +7,12 @@ import {
 describe("pointerAnimationScheduler", () => {
   it("starts flip first and enter in same frame window", () => {
     const order: string[] = [];
-    let scheduled: FrameRequestCallback | null = null;
+    let scheduled: (time: number) => void = () => {};
 
     const frameId = schedulePointerPlayback({
       hasFlip: true,
       hasEnter: true,
-      scheduleFrame: (cb) => {
+      scheduleFrame: (cb: FrameRequestCallback) => {
         scheduled = cb;
         return 7;
       },
@@ -26,8 +26,7 @@ describe("pointerAnimationScheduler", () => {
 
     expect(frameId).toBe(7);
     expect(order).toEqual([]);
-    expect(scheduled).not.toBeNull();
-    scheduled?.(0);
+    scheduled(0);
     expect(order).toEqual(["flip", "enter"]);
   });
 

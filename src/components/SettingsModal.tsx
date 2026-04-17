@@ -3,7 +3,6 @@ import { useEffect, useId, useRef } from "react";
 import { X } from "lucide-react";
 import { ToggleControl } from "@visualizer-ui";
 import { handleFocusTrapTab } from "../lib/focusTrap";
-import type { AlgorithmId } from "../lib/mockTrace";
 import type { ExecutionAction } from "../lib/executionReducer";
 import { strings } from "../strings";
 
@@ -12,7 +11,6 @@ const CLOSE_ICON = { size: 22, strokeWidth: 2.5 } as const;
 type Props = {
   open: boolean;
   onClose: () => void;
-  algorithmId: AlgorithmId;
   showArrayIndices: boolean;
   enableAnimationScroll: boolean;
   animationFitAllowUpscale: boolean;
@@ -22,7 +20,6 @@ type Props = {
 export function SettingsModal({
   open,
   onClose,
-  algorithmId,
   showArrayIndices,
   enableAnimationScroll,
   animationFitAllowUpscale,
@@ -30,8 +27,6 @@ export function SettingsModal({
 }: Props) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement | null>(null);
-  const showIndexToggle = algorithmId !== "stack";
-
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -94,18 +89,16 @@ export function SettingsModal({
         </div>
         <div className="settings-dialog-body">
           <div className="settings-toggle-group">
-            {showIndexToggle ? (
-              <ToggleControl
-                label={strings.settings.showArrayIndices}
-                checked={showArrayIndices}
-                onChange={(value) =>
-                  dispatch({
-                    type: "SET_SHOW_ARRAY_INDICES",
-                    value,
-                  })
-                }
-              />
-            ) : null}
+            <ToggleControl
+              label={strings.settings.showArrayIndices}
+              checked={showArrayIndices}
+              onChange={(value) =>
+                dispatch({
+                  type: "SET_SHOW_ARRAY_INDICES",
+                  value,
+                })
+              }
+            />
             <div className="settings-animation-fit-block">
               <ToggleControl
                 label={strings.settings.enableAnimationScroll}

@@ -1,5 +1,7 @@
 # DSA Visualizer: Current UI Design Draft (Concept Level)
 
+Entry flow and routing behavior are maintained in [`README.md`](../README.md) as the single source of truth. This document only summarizes UI structure and visual rules.
+
 ## 1. Product Context and Language
 
 - **Use case**: classroom projection tool for teaching demonstrations; UI language is **English**.
@@ -9,11 +11,13 @@
 
 ## 2. Global Information Architecture (Top to Bottom)
 
-The page is split into three fixed vertical layers inside the viewport. The intent is **no full-page scroll** (panel internals may scroll):
+The app has two surfaces:
 
-1. **App header**: product title and a global command entry.
-2. **Toolbar**: transport controls, speed controls, and panel visibility toggles.
-3. **Main workspace**: resizable columns for code, console, animation, variables, and optional PDF panel.
+1. **Minimal home (`/`)**: a centered, single search input for algorithm selection.
+2. **Main workspace (`/app`)**: three fixed vertical layers inside the viewport with **no full-page scroll** (panel internals may scroll):
+   - App header: product title and a global command entry.
+   - Toolbar: transport controls, speed controls, and panel visibility toggles.
+   - Main workspace: resizable columns for code, console, animation, variables, and optional PDF panel.
 
 A separate **toast layer** appears near the bottom center, above main content, and can be dismissed by click or keyboard.
 
@@ -61,7 +65,7 @@ For bar-based algorithm visuals, default bars use muted dark green, comparison b
 ## 5. Header
 
 - Left side: app title.
-- Right side: command entry styled like a narrow search strip (without inline shortcut text).
+- Right side: command entry styled like a narrow search strip with a leading magnifier icon (without inline shortcut text).
 - Global command panel toggle: **Ctrl+Shift+P** / **Cmd+Shift+P**.
 - Shortcuts help: open with top-right Help icon or the **`?`** key.
 - Header command area and settings icon should not use hover tooltips in this layout; rely on `aria-label`.
@@ -110,15 +114,23 @@ Each panel uses a consistent card structure:
   - Monospace output stream; gray empty-state hint when no output exists.
 - **Animation panel**:
   - Contains a one-line step description and icon-only controls.
+  - In presentation mode, transient play/pause/step feedback icons are anchored at the top-right, directly below the ANIMATION panel chrome area, to avoid occluding the main visualization.
+  - In shortcuts help, autoplay toggle is represented as dual state icons (`Play` + `Pause`) with the `Space` key.
+  - Presentation shortcuts mirror UI help: Next step supports `Enter` / `→` / `Left click`; Previous step supports `←` / `Right click`.
   - Text in the animation area should not be user-selectable.
   - Sorting visuals use bar heights proportional to values.
   - Overlaid pointers (`i`, `j`, `j-1`, `min`) share horizontal transition timing with bar FLIP movement and support first-appearance enter animation.
+  - **Movement policy (authoritative)**: all pointer/node position changes in `AnimationPanel` must animate from the last painted on-screen position to the new target position (FLIP from visual origin to destination), never teleport then animate.
+  - Pointer translation rule (authoritative): when a pointer has a measurable coordinate delta between steps (`x` and/or `y`, threshold `>= 0.5px`), it must use FLIP translation from previous on-screen position to target.
+  - Pointer first-appearance rule (authoritative): first appearance uses enter animation only; do not stack enter and FLIP on the same frame for the same element (prevents first-frame jitter).
+  - Enter/exit effects keep existing style and timing; this policy applies specifically to movement transitions.
   - On rapid step changes, pointer re-entry must clear stale exit styles to avoid invisible-but-mounted race conditions.
+  - Rapid-step safety rule (authoritative): stale async callbacks (rAF/timers from older animation runs) must be ignored so interrupted transitions cannot overwrite the latest layout.
   - `min` must not occupy bar-layout slots, to prevent fit jitter.
-  - `Stack (linked list)` visualization uses left-to-right square nodes with `first` at the left; show `first/oldfirst` pointers only.
-  - Array index labels are hidden for stack algorithms.
   - Pointer stacking rule: keep a stable baseline when pointers target different nodes; stack upward only when targeting the same node.
   - Settings include internal scroll mode and fit-to-viewport mode with stable trace-based sizing.
+  - Bar-sort demos (`insertion` and `selection`) share a **unified fit envelope**: intrinsic width/height are taken as the maximum over both mock traces so fit-to-viewport scaling stays visually consistent when switching between those algorithms (implemented in [`AnimationPanel.tsx`](../src/components/AnimationPanel.tsx)).
+  - Settings toggles use switch-style controls (not native checkbox visuals) via the shared `ToggleControl`.
   - English UI strings are sourced from `strings.ts`.
 - **Variables panel**:
   - Two-column table: variable name and rendered value string.
@@ -129,10 +141,20 @@ Each panel uses a consistent card structure:
 
 ## 10. Global Feedback and Accessibility
 
+- **Loading and waiting states**:
+  - Loading semantics have three levels:
+    - `inline`: small local status for quick refresh inside a panel.
+    - `section`: panel-level skeleton placeholders while content is preparing.
+    - `blocking`: full-screen overlay spinner for route-critical waits.
+  - Route transition from home (`/`) to workspace (`/app`) uses `blocking` loading to prevent repeat triggers and accidental double navigation.
+  - UI loading copy is sourced from [`src/strings.ts`](../src/strings.ts) and should not be hardcoded in panel components.
+  - Reduced-motion users must still receive clear status text feedback; motion-heavy loading effects should be softened or disabled under `prefers-reduced-motion: reduce`.
 - **Toast**:
   - For short status feedback (for example, code changed and trace may be out of sync).
   - Supports auto-dismiss and manual close.
   - In mismatch cases, include a **Reset demo** action.
+- **Fatal / route-level errors**:
+  - Uncaught render errors on `/` or `/app` are handled by the router `errorElement`: a full-screen English recovery view with actions to go home or reload. Copy lives in `strings.routeError`. Routing behavior and wording are specified in [`README.md`](../README.md).
 - **Icon-only controls**:
   - Must provide clear `aria-label`.
   - Do not depend on native `title`.
