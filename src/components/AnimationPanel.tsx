@@ -1,5 +1,11 @@
 import { AppWindow, Maximize2 } from "lucide-react";
-import type { AlgorithmId, MockStep, MockViz } from "../lib/mockTrace";
+import {
+  insertionSortTrace,
+  selectionSortTrace,
+  type AlgorithmId,
+  type MockStep,
+  type MockViz,
+} from "../lib/mockTrace";
 import { selectionSortedExclusiveEnd } from "../lib/selectionSortedPrefix";
 import { isSelectionJInactivePhase } from "../lib/selectionPointerPhase";
 import {
@@ -274,23 +280,42 @@ export function AnimationPanel({
   const maxVal = Math.max(1, ...viz.values);
   const showMinRow =
     typeof viz.minIndex === "number" && viz.minIndex >= 0;
-  const traceEnvelopeSteps = useMemo(
-    () =>
-      trace.map((step) => {
-        const displayStepCaption = formatVizCaptionForDisplay(
-          step.viz.caption,
-          step.variables
-        );
-        return {
-          captionParts: splitCaptionByBackticks(displayStepCaption),
-          values: step.viz.values,
-          maxVal: Math.max(1, ...step.viz.values),
-          showMinSlot:
-            typeof step.viz.minIndex === "number" && step.viz.minIndex >= 0,
-        };
-      }),
-    [trace]
-  );
+  const traceEnvelopeSteps = useMemo(() => {
+    const mapStep = (step: MockStep) => {
+      const displayStepCaption = formatVizCaptionForDisplay(
+        step.viz.caption,
+        step.variables
+      );
+      return {
+        captionParts: splitCaptionByBackticks(displayStepCaption),
+        values: step.viz.values,
+        maxVal: Math.max(1, ...step.viz.values),
+        showMinSlot:
+          typeof step.viz.minIndex === "number" && step.viz.minIndex >= 0,
+      };
+    };
+
+    const useBarSortPairEnvelope =
+      algorithmId === "insertion" || algorithmId === "selection";
+
+    if (useBarSortPairEnvelope) {
+      return [
+        ...insertionSortTrace.map((step, stepIdx) => ({
+          envelopeKey: `insertion-${stepIdx}`,
+          ...mapStep(step),
+        })),
+        ...selectionSortTrace.map((step, stepIdx) => ({
+          envelopeKey: `selection-${stepIdx}`,
+          ...mapStep(step),
+        })),
+      ];
+    }
+
+    return trace.map((step, stepIdx) => ({
+      envelopeKey: `trace-${stepIdx}`,
+      ...mapStep(step),
+    }));
+  }, [algorithmId, trace]);
 
   useLayoutEffect(() => {
     if (!isPanelReady) return;
@@ -1012,8 +1037,8 @@ export function AnimationPanel({
             ref={envelopeMeasureRef}
             aria-hidden
           >
-            {traceEnvelopeSteps.map((step, stepIdx) => (
-              <div key={stepIdx} className="viz-fit-scaled-bundle">
+            {traceEnvelopeSteps.map((step) => (
+              <div key={step.envelopeKey} className="viz-fit-scaled-bundle">
                 <p className="viz-caption viz-caption--fit">
                   {step.captionParts.map((seg, idx) =>
                     seg.code ? (

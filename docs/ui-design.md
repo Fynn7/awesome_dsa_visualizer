@@ -129,6 +129,7 @@ Each panel uses a consistent card structure:
   - `min` must not occupy bar-layout slots, to prevent fit jitter.
   - Pointer stacking rule: keep a stable baseline when pointers target different nodes; stack upward only when targeting the same node.
   - Settings include internal scroll mode and fit-to-viewport mode with stable trace-based sizing.
+  - Bar-sort demos (`insertion` and `selection`) share a **unified fit envelope**: intrinsic width/height are taken as the maximum over both mock traces so fit-to-viewport scaling stays visually consistent when switching between those algorithms (implemented in [`AnimationPanel.tsx`](../src/components/AnimationPanel.tsx)).
   - Settings toggles use switch-style controls (not native checkbox visuals) via the shared `ToggleControl`.
   - English UI strings are sourced from `strings.ts`.
 - **Variables panel**:
