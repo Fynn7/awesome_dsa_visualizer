@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, type ReactNode } from "react";
 import {
   CircleHelp,
   LogOut,
+  Pause,
   Play,
   Search,
   StepBack,
@@ -136,7 +137,12 @@ export function KeyboardHelpModal({
             />
             <HelpRow
               ariaLabel={`${strings.help.rowPlayPause}: Space`}
-              icon={<Play {...ROW_ICON} />}
+              icon={
+                <>
+                  <Play {...ROW_ICON} />
+                  <Pause {...ROW_ICON} />
+                </>
+              }
               keys={<kbd className="help-kbd">Space</kbd>}
             />
             <HelpRow
@@ -149,13 +155,25 @@ export function KeyboardHelpModal({
                     {strings.help.rowNextKeySep}
                   </span>
                   <kbd className="help-kbd">→</kbd>
+                  <span className="help-kbd-sep" aria-hidden>
+                    {strings.help.rowNextKeySep}
+                  </span>
+                  <kbd className="help-kbd">{strings.help.mouseLeftClick}</kbd>
                 </>
               }
             />
             <HelpRow
-              ariaLabel={`${strings.help.rowPrev}: Left arrow`}
+              ariaLabel={`${strings.help.rowPrev}: ${strings.help.rowPrevAria}`}
               icon={<StepBack {...ROW_ICON} />}
-              keys={<kbd className="help-kbd">←</kbd>}
+              keys={
+                <>
+                  <kbd className="help-kbd">←</kbd>
+                  <span className="help-kbd-sep" aria-hidden>
+                    {strings.help.rowNextKeySep}
+                  </span>
+                  <kbd className="help-kbd">{strings.help.mouseRightClick}</kbd>
+                </>
+              }
             />
           </div>
         </div>

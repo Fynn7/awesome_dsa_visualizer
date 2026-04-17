@@ -1229,16 +1229,17 @@ button {
 }
 
 .help-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 2.85rem minmax(0, 1fr);
   align-items: center;
   gap: 0.65rem;
 }
 
 .help-row-icon {
-  flex: 0 0 2rem;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 0.22rem;
   color: var(--accent-dim);
 }
 

@@ -68,8 +68,11 @@ export const strings = {
     rowNext: "Next step",
     /** Shown between keycaps; alternatives, not a chord */
     rowNextKeySep: "/",
-    rowNextAria: "Enter or Right arrow",
+    rowNextAria: "Enter, Right arrow, or Left click",
     rowPrev: "Previous step",
+    rowPrevAria: "Left arrow or Right click",
+    mouseLeftClick: "Left click",
+    mouseRightClick: "Right click",
     presentGroup: "While presenting",
   },
   emptyAllPanels:
