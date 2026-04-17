@@ -45,6 +45,7 @@ A browser-based visualization tool for teaching university-level data structures
 ## Getting Started (Local Development)
 
 > The exact commands may vary depending on your package manager setup; the typical Vite/React workflow is shown below.
+> Node.js 20+ is required (router dependencies declare `engines.node >= 20.0.0`).
 
 1. **Install dependencies**
    ```bash

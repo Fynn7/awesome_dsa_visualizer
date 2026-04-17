@@ -29,11 +29,11 @@ function getSearchCandidates(item: PaletteItem): string[] {
 function bestFuzzyForPiece(
   piece: string,
   candidates: string[]
-): { score: number; result: FuzzyScore; candidate: string; candidateIndex: number } | undefined {
+): { score: number; result: FuzzyScore; candidate: string } | undefined {
   const pieceLower = piece.toLowerCase();
-  let best: { score: number; result: FuzzyScore; candidate: string; candidateIndex: number } | undefined;
+  let best: { score: number; result: FuzzyScore; candidate: string } | undefined;
 
-  for (const [candidateIndex, candidate] of candidates.entries()) {
+  for (const candidate of candidates) {
     const result = fuzzyScore(
       piece,
       pieceLower,
@@ -44,7 +44,7 @@ function bestFuzzyForPiece(
       strictFuzzyScoreOptions
     );
     if (result && (!best || result[0] > best.score)) {
-      best = { score: result[0], result, candidate, candidateIndex };
+      best = { score: result[0], result, candidate };
     }
   }
 

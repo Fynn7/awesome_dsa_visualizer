@@ -83,10 +83,10 @@ export function HomePage() {
     enterApp(row.item.id);
   };
 
-  const activeOptionId =
-    filtered.length > 0
-      ? `${listId}-opt-${filtered[activeIndex].item.id}`
-      : undefined;
+  const activeItem = filtered[activeIndex];
+  const activeOptionId = activeItem
+    ? `${listId}-opt-${activeItem.item.id}`
+    : undefined;
 
   return (
     <main className="home-page">
@@ -112,7 +112,7 @@ export function HomePage() {
             aria-expanded={isSuggestionOpen}
             aria-autocomplete="list"
             aria-controls={listId}
-            aria-activedescendant={activeOptionId}
+            aria-activedescendant={isSuggestionOpen ? activeOptionId : undefined}
             autoComplete="off"
             autoCorrect="off"
             spellCheck={false}
