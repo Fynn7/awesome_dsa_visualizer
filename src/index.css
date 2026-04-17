@@ -101,6 +101,11 @@ body {
   color: var(--text);
 }
 
+.home-search-leading-icon-button:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
 .home-search-leading-icon-button:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -389,6 +394,121 @@ button {
 
 .monaco-loading {
   background: var(--bg-panel);
+}
+
+.loading-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.5rem 0.65rem 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.loading-spinner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-spinner-ring {
+  display: block;
+  border-style: solid;
+  border-color: rgba(45, 212, 191, 0.26);
+  border-top-color: var(--accent);
+  border-radius: 999px;
+  animation: loading-spin 0.75s linear infinite;
+}
+
+.loading-spinner--sm .loading-spinner-ring {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-width: 2px;
+}
+
+.loading-spinner--md .loading-spinner-ring {
+  width: 1rem;
+  height: 1rem;
+  border-width: 2px;
+}
+
+.loading-spinner--lg .loading-spinner-ring {
+  width: 1.65rem;
+  height: 1.65rem;
+  border-width: 3px;
+}
+
+.loading-panel-skeleton {
+  padding: 0.9rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.loading-skeleton {
+  border-radius: 6px;
+  height: 0.95rem;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(15, 44, 44, 0.65),
+    rgba(24, 70, 66, 0.9),
+    rgba(15, 44, 44, 0.65)
+  );
+  background-size: 220% 100%;
+  animation: loading-skeleton-wave 1.25s ease-in-out infinite;
+}
+
+.loading-skeleton--title {
+  width: 60%;
+}
+
+.loading-skeleton--short {
+  width: 78%;
+}
+
+.loading-blocking-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.loading-blocking-overlay-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-panel-head);
+  box-shadow: 0 12px 38px rgba(0, 0, 0, 0.42);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 14rem;
+  padding: 1rem 1.15rem;
+}
+
+.loading-blocking-overlay-text {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.92rem;
+}
+
+@keyframes loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes loading-skeleton-wave {
+  0% {
+    background-position: 120% 0;
+  }
+  100% {
+    background-position: -120% 0;
+  }
 }
 
 .monaco-full .monaco-editor,
@@ -1589,6 +1709,14 @@ button {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .loading-spinner-ring {
+    animation-duration: 2.2s;
+  }
+
+  .loading-skeleton {
+    animation: none;
+  }
+
   .viz-pointer--entering {
     animation: none;
   }

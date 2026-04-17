@@ -1,6 +1,14 @@
 /** UI copy. English only for this milestone */
 
 export const strings = {
+  loading: {
+    routeTransition: "Opening algorithm workspace…",
+    appBoot: "Preparing workspace…",
+    editorInit: "Loading code editor…",
+    animationInit: "Preparing animation panel…",
+    consoleRefresh: "Refreshing console output…",
+    variablesRefresh: "Refreshing variables…",
+  },
   home: {
     searchPlaceholder: "Type to filter demos by name…",
     searchAria: "Algorithm search",

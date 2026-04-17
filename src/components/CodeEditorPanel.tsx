@@ -8,6 +8,7 @@ type Props = {
   activeLine: number;
   stepIndex: number;
   loopPulseRange: LoopPulseRange | null;
+  onReadyChange?: (ready: boolean) => void;
 };
 
 export function CodeEditorPanel({
@@ -16,6 +17,7 @@ export function CodeEditorPanel({
   activeLine,
   stepIndex,
   loopPulseRange,
+  onReadyChange,
 }: Props) {
   return (
     <div className="panel panel-full">
@@ -27,6 +29,7 @@ export function CodeEditorPanel({
           activeLine={activeLine}
           stepIndex={stepIndex}
           loopPulseRange={loopPulseRange}
+          onReadyChange={onReadyChange}
         />
       </div>
     </div>

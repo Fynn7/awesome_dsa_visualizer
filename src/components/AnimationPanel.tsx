@@ -27,6 +27,7 @@ import {
   shouldAnimatePointerFlip,
 } from "../lib/pointerAnimationScheduler";
 import { strings } from "../strings";
+import { PanelSkeleton } from "./LoadingState";
 import {
   splitCaptionByBackticks,
   stripCaptionBackticks,
@@ -63,6 +64,7 @@ type Props = {
   onPresentNative?: () => void;
   onPresentOverlay?: () => void;
   stepPointerNavigation?: StepPointerNavigation;
+  onReadyChange?: (ready: boolean) => void;
 };
 
 const PRESENT_ICON = { size: 16, strokeWidth: 2 } as const;
@@ -224,6 +226,7 @@ export function AnimationPanel({
   onPresentNative,
   onPresentOverlay,
   stepPointerNavigation,
+  onReadyChange,
 }: Props) {
   const barIdSeedRef = useRef(0);
   const prevBarsRef = useRef<VisualBar[]>([]);
@@ -292,6 +295,17 @@ export function AnimationPanel({
     width: number;
     height: number;
   } | null>(null);
+  const [isPanelReady, setIsPanelReady] = useState(false);
+
+  useEffect(() => {
+    setIsPanelReady(false);
+    const rafId = window.requestAnimationFrame(() => setIsPanelReady(true));
+    return () => window.cancelAnimationFrame(rafId);
+  }, [algorithmId, trace]);
+
+  useEffect(() => {
+    onReadyChange?.(isPanelReady);
+  }, [isPanelReady, onReadyChange]);
 
   const isStackLinkedList =
     algorithmId === "stack" && !!viz.stackLinkedList;
@@ -672,7 +686,8 @@ export function AnimationPanel({
       const shouldFlip = shouldAnimatePointerFlip(prevEntry?.center, newCenter);
 
       if (shouldFlip) {
-        const delta = prevEntry.center - newCenter;
+        const prevCenter = prevEntry?.center ?? newCenter;
+        const delta = prevCenter - newCenter;
         el.style.willChange = "transform";
         el.style.transition = "none";
         el.style.transform = `translateX(calc(-50% + ${delta}px))`;
@@ -957,7 +972,8 @@ export function AnimationPanel({
       }
       const shouldFlip = shouldAnimatePointerFlip(prevEntry?.center, center);
       if (shouldFlip) {
-        const delta = prevEntry.center - center;
+        const prevCenter = prevEntry?.center ?? center;
+        const delta = prevCenter - center;
         el.style.willChange = "transform";
         el.style.transition = "none";
         el.style.transform = `translateX(calc(-50% + ${delta}px))`;
@@ -1200,8 +1216,14 @@ export function AnimationPanel({
           </div>
         ) : null}
       </div>
-      <div className={`panel-body${!enableAnimationScroll ? " panel-body--no-scroll" : ""}`}>
-        <div
+      <div
+        className={`panel-body${!enableAnimationScroll ? " panel-body--no-scroll" : ""}`}
+        aria-busy={!isPanelReady}
+      >
+        {!isPanelReady ? (
+          <PanelSkeleton label={strings.loading.animationInit} rows={5} />
+        ) : (
+          <div
           className={`viz-fit-viewport${!enableAnimationScroll ? " viz-fit-viewport--fit" : ""}`}
           ref={fitViewportRef}
           onClick={
@@ -1455,8 +1477,9 @@ export function AnimationPanel({
               </div>
             </div>
           </div>
-        </div>
-        {!enableAnimationScroll ? (
+          </div>
+        )}
+        {isPanelReady && !enableAnimationScroll ? (
           <div
             className="viz-envelope-measure"
             ref={envelopeMeasureRef}

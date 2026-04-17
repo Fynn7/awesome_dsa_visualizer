@@ -136,6 +136,14 @@ Each panel uses a consistent card structure:
 
 ## 10. Global Feedback and Accessibility
 
+- **Loading and waiting states**:
+  - Loading semantics have three levels:
+    - `inline`: small local status for quick refresh inside a panel.
+    - `section`: panel-level skeleton placeholders while content is preparing.
+    - `blocking`: full-screen overlay spinner for route-critical waits.
+  - Route transition from home (`/`) to workspace (`/app`) uses `blocking` loading to prevent repeat triggers and accidental double navigation.
+  - UI loading copy is sourced from [`src/strings.ts`](../src/strings.ts) and should not be hardcoded in panel components.
+  - Reduced-motion users must still receive clear status text feedback; motion-heavy loading effects should be softened or disabled under `prefers-reduced-motion: reduce`.
 - **Toast**:
   - For short status feedback (for example, code changed and trace may be out of sync).
   - Supports auto-dismiss and manual close.

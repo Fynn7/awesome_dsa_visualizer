@@ -13,6 +13,7 @@ import { PresentationShell } from "./components/PresentationShell";
 import { SettingsModal } from "./components/SettingsModal";
 import { Toolbar } from "./components/Toolbar";
 import { Workspace } from "./components/Workspace";
+import { BlockingLoadingOverlay } from "./components/LoadingState";
 import {
   createInitialState,
   executionReducer,
@@ -44,6 +45,7 @@ export default function App({ initialAlgorithmId }: AppProps) {
   const [presentationNotice, setPresentationNotice] = useState<string | null>(
     null
   );
+  const [workspaceBusy, setWorkspaceBusy] = useState(true);
   const presentationShellRef = useRef<HTMLDivElement | null>(null);
   const commandPaletteTriggerRef = useRef<HTMLButtonElement>(null);
   const settingsTriggerRef = useRef<HTMLButtonElement>(null);
@@ -171,7 +173,7 @@ export default function App({ initialAlgorithmId }: AppProps) {
   }, [initialAlgorithmId]);
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" aria-busy={workspaceBusy}>
       <header className="app-header">
         <h1 className="app-header-title">
           {getAlgorithmTitle(state.algorithmId)}
@@ -219,8 +221,13 @@ export default function App({ initialAlgorithmId }: AppProps) {
           presentationMode={presentationMode}
           onPresentNative={enterPresentationNative}
           onPresentOverlay={enterPresentationOverlay}
+          onBusyChange={setWorkspaceBusy}
         />
       </main>
+      <BlockingLoadingOverlay
+        active={workspaceBusy}
+        label={strings.loading.appBoot}
+      />
       {presentationMode !== "off" && state.panels.animation ? (
         <PresentationShell
           ref={presentationShellRef}

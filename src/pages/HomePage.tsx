@@ -7,6 +7,7 @@ import {
   getTitleMatchIndices,
 } from "../lib/commandPaletteItems";
 import { strings } from "../strings";
+import { BlockingLoadingOverlay } from "../components/LoadingState";
 
 function HighlightedTitle({
   title,
@@ -53,6 +54,7 @@ export function HomePage() {
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const [isSuggestionOpen, setIsSuggestionOpen] = useState(false);
+  const [isRoutePending, setIsRoutePending] = useState(false);
 
   const filtered = useMemo(() => getFilteredPaletteItems(query), [query]);
 
@@ -70,6 +72,8 @@ export function HomePage() {
   }, []);
 
   const enterApp = (algorithmId: AlgorithmId) => {
+    if (isRoutePending) return;
+    setIsRoutePending(true);
     navigate(`/app?algorithm=${encodeURIComponent(algorithmId)}`);
   };
 
@@ -92,6 +96,7 @@ export function HomePage() {
             type="button"
             className="home-search-leading-icon-button"
             aria-label={strings.home.searchIconAria}
+            disabled={isRoutePending}
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => pickAt(activeIndex)}
           >
@@ -111,6 +116,7 @@ export function HomePage() {
             autoComplete="off"
             autoCorrect="off"
             spellCheck={false}
+            disabled={isRoutePending}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => setIsSuggestionOpen(true)}
@@ -157,6 +163,7 @@ export function HomePage() {
                     aria-selected={active}
                     id={`${listId}-opt-${item.id}`}
                     className={`command-palette-row${active ? " command-palette-row--active" : ""}`}
+                    disabled={isRoutePending}
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => pickAt(index)}
                     onMouseEnter={() => setActiveIndex(index)}
@@ -181,6 +188,10 @@ export function HomePage() {
           </div>
         ) : null}
       </div>
+      <BlockingLoadingOverlay
+        active={isRoutePending}
+        label={strings.loading.routeTransition}
+      />
     </main>
   );
 }

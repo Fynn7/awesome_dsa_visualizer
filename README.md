@@ -78,6 +78,7 @@ For detailed product vision and interaction rules, see:
 
 - `docs/vision-dsa-visualizer.md` — overall direction, teaching context, and feature expectations.
 - `docs/ui-design.md` — UI design notes that summarize layout/color behavior and link back here for entry-flow specifics.
+- Loading and waiting behavior rules are maintained in `docs/ui-design.md` (see Global Feedback and Accessibility), including inline/section/blocking semantics.
 
 `README.md` is the single source of truth for current entry flow and routing behavior.
 
