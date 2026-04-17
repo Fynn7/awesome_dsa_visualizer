@@ -6,6 +6,7 @@ import {
   insertionSortLoopPulseRules,
   insertionSortTrace,
 } from "./mockTrace";
+import { barToneForIndex } from "./vizBarTone";
 
 describe("insertion sort demo (DSA swap + intArray)", () => {
   it("keeps INSERTION_SORT_SOURCE line numbers aligned with trace (data on line 18)", () => {
@@ -83,5 +84,16 @@ describe("insertion sort demo (DSA swap + intArray)", () => {
     const last = insertionSortTrace[insertionSortTrace.length - 1]!;
     expect(last.line).toBe(18);
     expect(last.viz.values).toEqual([2, 3, 5, 7]);
+    expect(last.viz.highlightIndices).toEqual([]);
+  });
+
+  it("completion frame uses sorted bar tone for every index (matches line-18 exclusive end)", () => {
+    const last = insertionSortTrace[insertionSortTrace.length - 1]!;
+    const len = last.viz.values.length;
+    const end = last.line === 18 ? len : undefined;
+    expect(end).toBe(len);
+    for (let idx = 0; idx < len; idx += 1) {
+      expect(barToneForIndex(idx, last.viz, end)).toBe("sorted");
+    }
   });
 });

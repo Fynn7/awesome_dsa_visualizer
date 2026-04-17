@@ -482,7 +482,7 @@ export const insertionSortTrace: MockStep[] = [
     viz: {
       caption: "`insertion_sort` returned → data sorted",
       values: [2, 3, 5, 7],
-      highlightIndices: [0, 1, 2, 3],
+      highlightIndices: [],
     },
   },
 ];

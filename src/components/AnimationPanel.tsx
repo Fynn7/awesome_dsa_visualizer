@@ -247,12 +247,17 @@ export function AnimationPanel({
     [algorithmId, variables, viz]
   );
   const sortedExclusiveEnd = useMemo(() => {
-    if (algorithmId !== "selection") return undefined;
-    return selectionSortedExclusiveEnd(
-      stepLine,
-      variables,
-      viz.values.length
-    );
+    if (algorithmId === "selection") {
+      return selectionSortedExclusiveEnd(
+        stepLine,
+        variables,
+        viz.values.length
+      );
+    }
+    if (algorithmId === "insertion") {
+      return stepLine === 18 ? viz.values.length : undefined;
+    }
+    return undefined;
   }, [algorithmId, stepLine, variables, viz.values.length]);
   const isSelectionJInactive = useMemo(
     () => isSelectionJInactivePhase(algorithmId, stepLine, pointers.j),
