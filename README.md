@@ -92,7 +92,9 @@ Developer maintenance note:
 
 - Pointer movement animation is centralized in `src/lib/pointerMoveAnimation.ts`.
 - Pointer enter/exit lifecycle animation is centralized in `src/lib/pointerLifecycleAnimation.ts`.
+- Pointer key registry and visibility-map helpers are centralized in `src/lib/pointerRegistry.ts`.
 - Bar FLIP and assign animation policy is centralized in `src/lib/barAnimationPolicy.ts`.
+- Bar identity reuse/derivation is centralized in `src/lib/visualBars.ts`.
 - Bar/pointer tone-to-class mapping is centralized in `src/lib/visualToneClassMap.ts`.
 - Shared animation tokens (easing/threshold/buffer) are centralized in `src/lib/motionTokens.ts`.
 - To change one animation category across all algorithms and all steps, edit the corresponding module above and keep `AnimationPanel` consuming those helpers only.

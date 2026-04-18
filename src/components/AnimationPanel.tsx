@@ -61,6 +61,17 @@ import {
   createAnimationRunGuard,
   isAnimationRunCurrent,
 } from "../lib/animationRunGuard";
+import {
+  ARRAY_POINTER_KEYS,
+  createPointerVisibilityMap,
+  type PointerKey,
+  type PointerMetaEntry,
+  type PointerMetaMap,
+} from "../lib/pointerRegistry";
+import {
+  deriveVisualBars,
+  type VisualBar,
+} from "../lib/visualBars";
 import { strings } from "../strings";
 import { PanelSkeleton } from "./LoadingState";
 import {
@@ -106,14 +117,6 @@ const PRESENT_ICON = { size: 16, strokeWidth: 2 } as const;
 
 /** Caps viz zoom when the panel is large and the diagram is tiny (rem-based layout). */
 const MAX_VIZ_UPSCALE = 6;
-
-type VisualBar = {
-  id: string;
-  value: number;
-};
-
-type PointerKey = "i" | "j" | "jMinus1" | "min";
-const ARRAY_POINTER_KEYS: readonly PointerKey[] = ["i", "j", "jMinus1", "min"];
 
 function buildVizAriaLabel(
   caption: string,
@@ -174,18 +177,8 @@ export function AnimationPanel({
     createPointerTransitionMap(ARRAY_POINTER_KEYS)
   );
   const [, setPointerTransitionRevision] = useState(0);
-  const prevPointerVisibleRef = useRef<Record<PointerKey, boolean>>({
-    i: false,
-    j: false,
-    jMinus1: false,
-    min: false,
-  });
-  const prevPointerMetaRef = useRef<{
-    i?: { idx: number; center: number };
-    j?: { idx: number; center: number };
-    jMinus1?: { idx: number; center: number };
-    min?: { idx: number; center: number };
-  }>({});
+  const prevPointerVisibleRef = useRef(createPointerVisibilityMap());
+  const prevPointerMetaRef = useRef<PointerMetaMap>({});
   const fitViewportRef = useRef<HTMLDivElement | null>(null);
   const graphSlotRef = useRef<HTMLDivElement | null>(null);
   const graphFitRef = useRef<HTMLDivElement | null>(null);
@@ -214,44 +207,12 @@ export function AnimationPanel({
   const shouldShowArrayIndices = showArrayIndices;
 
   const bars = useMemo(() => {
-    const prevBars = prevBarsRef.current;
-    const nextBars: VisualBar[] = new Array(viz.values.length);
-    const usedPrevIds = new Set<string>();
-
-    // Pass 1: keep identity stable when same index keeps same value.
-    for (let i = 0; i < viz.values.length; i += 1) {
-      const prevBarAtIndex = prevBars[i];
-      if (!prevBarAtIndex) continue;
-      if (prevBarAtIndex.value !== viz.values[i]) continue;
-      nextBars[i] = { id: prevBarAtIndex.id, value: viz.values[i]! };
-      usedPrevIds.add(prevBarAtIndex.id);
-    }
-
-    // Build remaining reusable ids by value (excluding already reserved ids).
-    const reusableByValue = new Map<number, string[]>();
-    for (const prevBar of prevBars) {
-      if (usedPrevIds.has(prevBar.id)) continue;
-      const queue = reusableByValue.get(prevBar.value);
-      if (queue) {
-        queue.push(prevBar.id);
-      } else {
-        reusableByValue.set(prevBar.value, [prevBar.id]);
-      }
-    }
-
-    // Pass 2: reuse same-value ids from other indexes (for swap/shift), else mint.
-    for (let i = 0; i < viz.values.length; i += 1) {
-      if (nextBars[i]) continue;
-      const value = viz.values[i]!;
-      const queue = reusableByValue.get(value);
-      if (queue && queue.length > 0) {
-        nextBars[i] = { id: queue.shift()!, value };
-      } else {
-        barIdSeedRef.current += 1;
-        nextBars[i] = { id: `bar-${barIdSeedRef.current}`, value };
-      }
-    }
-
+    const { bars: nextBars, nextSeed } = deriveVisualBars(
+      prevBarsRef.current,
+      viz.values,
+      barIdSeedRef.current
+    );
+    barIdSeedRef.current = nextSeed;
     return nextBars;
   }, [viz.values]);
 
@@ -547,12 +508,7 @@ export function AnimationPanel({
 
     const prevPtr = prevPointerMetaRef.current;
     const prevVisible = prevPointerVisibleRef.current;
-    const nextVisible: Record<PointerKey, boolean> = {
-      i: false,
-      j: false,
-      jMinus1: false,
-      min: false,
-    };
+    const nextVisible = createPointerVisibilityMap();
     const flipEls: HTMLSpanElement[] = [];
     const enterEls: HTMLSpanElement[] = [];
 
@@ -560,7 +516,7 @@ export function AnimationPanel({
       key: PointerKey,
       el: HTMLSpanElement | null,
       newCenter: number | undefined,
-      prevEntry: { idx: number; center: number } | undefined,
+      prevEntry: PointerMetaEntry | undefined,
       newIdx: number | undefined
     ) => {
       const transitionState = pointerTransitionStateRef.current[key];
@@ -679,12 +635,7 @@ export function AnimationPanel({
       },
     });
 
-    const nextPtr: {
-      i?: { idx: number; center: number };
-      j?: { idx: number; center: number };
-      jMinus1?: { idx: number; center: number };
-      min?: { idx: number; center: number };
-    } = {};
+    const nextPtr: PointerMetaMap = {};
     if (typeof pointers.i === "number" && iCenter !== undefined) {
       nextPtr.i = { idx: pointers.i, center: iCenter };
     }

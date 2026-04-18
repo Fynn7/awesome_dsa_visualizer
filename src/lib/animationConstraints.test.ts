@@ -12,7 +12,9 @@ describe("animation single-source constraints", () => {
 
     expect(source).toContain('from "../lib/pointerMoveAnimation"');
     expect(source).toContain('from "../lib/pointerLifecycleAnimation"');
+    expect(source).toContain('from "../lib/pointerRegistry"');
     expect(source).toContain('from "../lib/barAnimationPolicy"');
+    expect(source).toContain('from "../lib/visualBars"');
     expect(source).toContain('from "../lib/visualToneClassMap"');
   });
 
