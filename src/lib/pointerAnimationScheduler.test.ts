@@ -3,6 +3,7 @@ import {
   schedulePointerPlayback,
   shouldAnimatePointerFlip,
 } from "./pointerAnimationScheduler";
+import { POINTER_MOVE_MIN_DELTA_PX } from "./pointerMoveAnimation";
 
 describe("pointerAnimationScheduler", () => {
   it("starts flip first and enter in same frame window", () => {
@@ -52,10 +53,14 @@ describe("pointerAnimationScheduler", () => {
   });
 
   it("animates pointer flip even when index does not change", () => {
-    expect(shouldAnimatePointerFlip(200, 212)).toBe(true);
+    expect(
+      shouldAnimatePointerFlip(200, 200 + POINTER_MOVE_MIN_DELTA_PX)
+    ).toBe(true);
   });
 
   it("does not animate tiny pointer offset jitter", () => {
-    expect(shouldAnimatePointerFlip(200, 200.2)).toBe(false);
+    expect(
+      shouldAnimatePointerFlip(200, 200 + POINTER_MOVE_MIN_DELTA_PX - 0.01)
+    ).toBe(false);
   });
 });

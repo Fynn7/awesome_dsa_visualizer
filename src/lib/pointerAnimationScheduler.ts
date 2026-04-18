@@ -1,3 +1,5 @@
+import { MOTION_MIN_DELTA_PX } from "./motionTokens";
+
 export type FrameScheduler = (callback: FrameRequestCallback) => number;
 
 type PointerPlaybackOptions = {
@@ -35,7 +37,7 @@ export function schedulePointerPlayback({
 export function shouldAnimatePointerFlip(
   prevCenter: number | undefined,
   newCenter: number | undefined,
-  threshold = 0.5
+  threshold = MOTION_MIN_DELTA_PX
 ): boolean {
   if (prevCenter === undefined || newCenter === undefined) return false;
   return Math.abs(newCenter - prevCenter) >= threshold;

@@ -121,6 +121,11 @@ Each panel uses a consistent card structure:
   - Sorting visuals use bar heights proportional to values.
   - Overlaid pointers (`i`, `j`, `j-1`, `min`) share horizontal transition timing with bar FLIP movement and support first-appearance enter animation.
   - **Movement policy (authoritative)**: all pointer/node position changes in `AnimationPanel` must animate from the last painted on-screen position to the new target position (FLIP from visual origin to destination), never teleport then animate.
+  - **Implementation single source (authoritative)**: pointer movement animation styles are centralized in [`src/lib/pointerMoveAnimation.ts`](../src/lib/pointerMoveAnimation.ts); pointer enter/exit lifecycle timing and class toggles are centralized in [`src/lib/pointerLifecycleAnimation.ts`](../src/lib/pointerLifecycleAnimation.ts).
+  - **Bar animation single source (authoritative)**: bar FLIP/assign thresholds, easing and transition wiring are centralized in [`src/lib/barAnimationPolicy.ts`](../src/lib/barAnimationPolicy.ts).
+  - **Tone mapping single source (authoritative)**: bar/pointer tone-to-class mappings are centralized in [`src/lib/visualToneClassMap.ts`](../src/lib/visualToneClassMap.ts).
+  - **Motion token single source (authoritative)**: shared animation easing/threshold buffers are defined in [`src/lib/motionTokens.ts`](../src/lib/motionTokens.ts) and consumed by pointer/bar policy modules.
+  - `AnimationPanel` must call shared helpers from the modules above for pointer/bar animation wiring; avoid ad-hoc inline style strings and duplicated threshold literals.
   - Pointer translation rule (authoritative): when a pointer has a measurable coordinate delta between steps (`x` and/or `y`, threshold `>= 0.5px`), it must use FLIP translation from previous on-screen position to target.
   - Pointer first-appearance rule (authoritative): first appearance uses enter animation only; do not stack enter and FLIP on the same frame for the same element (prevents first-frame jitter).
   - Enter/exit effects keep existing style and timing; this policy applies specifically to movement transitions.

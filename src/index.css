@@ -10,6 +10,7 @@
   --text-muted: #7a9e98;
   --accent: #2dd4bf;
   --accent-dim: #14b8a6;
+  --motion-easing-emphasized: cubic-bezier(0.22, 1, 0.36, 1);
   --bar: #1a3834;
   --bar-key: #a3e635;
   --bar-min-index: #c084fc;
@@ -1199,8 +1200,8 @@ button {
   font-weight: 700;
   line-height: 1.05;
   transition:
-    color 420ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 420ms cubic-bezier(0.22, 1, 0.36, 1);
+    color 420ms var(--motion-easing-emphasized),
+    opacity 420ms var(--motion-easing-emphasized);
 }
 .viz-pointer--i {
   color: #fff;
@@ -1266,7 +1267,7 @@ button {
 .viz-pointer--entering {
   animation: viz-pointer-enter-pop
     var(--viz-pointer-enter-duration, 240ms)
-    cubic-bezier(0.22, 1, 0.36, 1) 1;
+    var(--motion-easing-emphasized) 1;
 }
 
 @keyframes viz-pointer-exit-fade {
@@ -1283,7 +1284,7 @@ button {
 .viz-pointer--exiting {
   animation: viz-pointer-exit-fade
     var(--viz-pointer-enter-duration, 240ms)
-    cubic-bezier(0.22, 1, 0.36, 1) 1 forwards;
+    var(--motion-easing-emphasized) 1 forwards;
 }
 .viz-bar {
   width: 100%;

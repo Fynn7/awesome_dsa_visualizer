@@ -1,4 +1,5 @@
 import type { AlgorithmId } from "./mockTrace";
+import { getAlgorithmSpecs } from "./algorithmSpecs";
 import type { FuzzyScore } from "./vscodeFuzzyScore";
 import { fuzzyScore, strictFuzzyScoreOptions } from "./vscodeFuzzyScore";
 
@@ -9,18 +10,11 @@ export type PaletteItem = {
   searchBlob: string;
 };
 
-const PALETTE_ITEMS: PaletteItem[] = [
-  {
-    id: "insertion",
-    title: "Insertion sort",
-    searchBlob: "sorting ins demo algorithm array stable online o n2",
-  },
-  {
-    id: "selection",
-    title: "Selection sort",
-    searchBlob: "sorting sel demo algorithm in-place o n2 minimum swap",
-  },
-];
+const PALETTE_ITEMS: PaletteItem[] = getAlgorithmSpecs().map((spec) => ({
+  id: spec.id,
+  title: spec.title,
+  searchBlob: spec.searchBlob,
+}));
 
 function getSearchCandidates(item: PaletteItem): string[] {
   return [item.title, ...item.searchBlob.split(/\s+/).filter((piece) => piece.length > 0)];
