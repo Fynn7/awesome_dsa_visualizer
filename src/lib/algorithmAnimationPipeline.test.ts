@@ -180,7 +180,7 @@ describe("algorithm animation shared pipeline", () => {
         enterDuration
       );
 
-      const envelope = getAlgorithmEnvelopeTraces(id, trace);
+      const envelope = getAlgorithmEnvelopeTraces(id, trace, getAlgorithmDemo);
       expect(envelope.length).toBeGreaterThan(0);
       if (dsuGraphStepCount > 0) {
         expect(dsuGraphStepCount).toBe(trace.length);

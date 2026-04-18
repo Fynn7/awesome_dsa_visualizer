@@ -1,5 +1,4 @@
 import {
-  getAlgorithmDemo,
   type AlgorithmId,
   type MockStep,
 } from "./mockTrace";
@@ -84,6 +83,10 @@ export type AlgorithmEnvelopeTrace = {
   trace: MockStep[];
 };
 
+export function getAlgorithmIds(): AlgorithmId[] {
+  return Object.keys(ALGORITHM_SPECS) as AlgorithmId[];
+}
+
 export function getAlgorithmSpec(id: AlgorithmId): AlgorithmSpec {
   return ALGORITHM_SPECS[id];
 }
@@ -94,7 +97,8 @@ export function getAlgorithmSpecs(): AlgorithmSpec[] {
 
 export function getAlgorithmEnvelopeTraces(
   id: AlgorithmId,
-  fallbackTrace: MockStep[]
+  fallbackTrace: MockStep[],
+  getDemo: (traceId: AlgorithmId) => { trace: MockStep[] }
 ): AlgorithmEnvelopeTrace[] {
   const spec = getAlgorithmSpec(id);
   const ids = spec.visual.envelopeTraceIds;
@@ -105,6 +109,6 @@ export function getAlgorithmEnvelopeTraces(
 
   return ids.map((traceId) => ({
     id: traceId,
-    trace: getAlgorithmDemo(traceId).trace,
+    trace: getDemo(traceId).trace,
   }));
 }
