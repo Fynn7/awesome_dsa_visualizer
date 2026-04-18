@@ -8,6 +8,7 @@ const BAR_ASSIGNING_CLASS = "viz-bar--assigning";
 const BAR_ASSIGN_DURATION_CSS_VAR = "--viz-assign-duration";
 
 export function getBarHeightPercent(value: number, maxValue: number): string {
+  if (maxValue <= 0) return "0%";
   return `${Math.round((value / maxValue) * 100)}%`;
 }
 
