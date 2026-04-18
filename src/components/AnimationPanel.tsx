@@ -41,6 +41,10 @@ import {
   shouldAnimatePointerFlip,
 } from "../lib/pointerAnimationScheduler";
 import {
+  planPointerStage,
+  type PointerTargetMap,
+} from "../lib/pointerStagePlan";
+import {
   playPointerMoveFlip,
   primePointerMoveFlip,
   settlePointerMoveAtRest,
@@ -65,7 +69,6 @@ import {
   ARRAY_POINTER_KEYS,
   createPointerVisibilityMap,
   type PointerKey,
-  type PointerMetaEntry,
   type PointerMetaMap,
 } from "../lib/pointerRegistry";
 import {
@@ -383,6 +386,7 @@ export function AnimationPanel({
 
     const SPLIT_OFFSET = 11;
     const trackEl = barsTrackRef.current;
+    let trackLeft: number | undefined;
     let iCenter: number | undefined;
     let jCenter: number | undefined;
     let jm1Center: number | undefined;
@@ -391,6 +395,7 @@ export function AnimationPanel({
     // invert on columns, otherwise rects are shifted and step-back looks wrong.
     if (trackEl && bars.length > 0) {
       const trackRect = trackEl.getBoundingClientRect();
+      trackLeft = trackRect.left;
       const colCenterInTrackAtRest = (idx: number) => {
         const bar = bars[idx];
         if (!bar) return undefined;
@@ -508,42 +513,71 @@ export function AnimationPanel({
 
     const prevPtr = prevPointerMetaRef.current;
     const prevVisible = prevPointerVisibleRef.current;
-    const nextVisible = createPointerVisibilityMap();
     const flipEls: HTMLSpanElement[] = [];
     const enterEls: HTMLSpanElement[] = [];
 
-    const stagePointer = (
-      key: PointerKey,
-      el: HTMLSpanElement | null,
-      newCenter: number | undefined,
-      prevEntry: PointerMetaEntry | undefined,
-      newIdx: number | undefined
-    ) => {
+    const minIdx =
+      showMinRow && typeof viz.minIndex === "number" && viz.minIndex >= 0
+        ? viz.minIndex
+        : undefined;
+
+    const pointerTargets: PointerTargetMap = {
+      i: { index: pointers.i, center: iCenter },
+      j: { index: pointers.j, center: jCenter },
+      jMinus1: { index: pointers.jMinus1, center: jm1Center },
+      min: { index: minIdx, center: minCenter },
+    };
+
+    const pointerPlan = planPointerStage({
+      targets: pointerTargets,
+      prevVisible,
+      prevMeta: prevPtr,
+      preClearRects: preClearPointers,
+      trackLeft,
+      layoutScale,
+      shouldAnimateFlip: shouldAnimatePointerFlip,
+    });
+
+    const pointerElements: Record<PointerKey, HTMLSpanElement | null> = {
+      i: pointerIRef.current,
+      j: pointerJRef.current,
+      jMinus1: pointerJMinus1Ref.current,
+      min: pointerMinRef.current,
+    };
+
+    for (const key of ARRAY_POINTER_KEYS) {
+      const el = pointerElements[key];
+      const decision = pointerPlan.decisions[key];
       const transitionState = pointerTransitionStateRef.current[key];
       const wasExiting = transitionState.exiting;
       const pendingExitTimer = pointerExitTimerByKeyRef.current[key];
-      if (!el || newCenter === undefined || newIdx === undefined) {
-        nextVisible[key] = false;
-        if (el) {
-          clearPointerEnterAnimation(el);
-          setPointerAnimationDuration(el, pointerEnterDurationMs);
-          if (beginPointerExit(pointerTransitionStateRef.current, key)) {
-            markPointerExiting(el);
-            const timer = window.setTimeout(() => {
-              if (
-                !isAnimationRunCurrent(animationRunGuard, animationRunId)
-              ) {
-                return;
-              }
-              completePointerExit(pointerTransitionStateRef.current, key);
-              delete pointerExitTimerByKeyRef.current[key];
-              bumpPointerTransitionRevision();
-            }, pointerEnterDurationMs);
-            pointerExitTimerByKeyRef.current[key] = timer;
-          }
-        }
-        return;
+
+      if (!el) {
+        pointerPlan.nextVisible[key] = false;
+        delete pointerPlan.nextMeta[key];
+        continue;
       }
+
+      if (decision.shouldHide) {
+        clearPointerEnterAnimation(el);
+        setPointerAnimationDuration(el, pointerEnterDurationMs);
+        if (beginPointerExit(pointerTransitionStateRef.current, key)) {
+          markPointerExiting(el);
+          const timer = window.setTimeout(() => {
+            if (
+              !isAnimationRunCurrent(animationRunGuard, animationRunId)
+            ) {
+              return;
+            }
+            completePointerExit(pointerTransitionStateRef.current, key);
+            delete pointerExitTimerByKeyRef.current[key];
+            bumpPointerTransitionRevision();
+          }, pointerEnterDurationMs);
+          pointerExitTimerByKeyRef.current[key] = timer;
+        }
+        continue;
+      }
+
       if (typeof pendingExitTimer === "number") {
         window.clearTimeout(pendingExitTimer);
         delete pointerExitTimerByKeyRef.current[key];
@@ -553,46 +587,23 @@ export function AnimationPanel({
       if (wasExiting || hadExitingClassBefore) {
         clearPointerExiting(el);
       }
-      el.style.left = `${newCenter}px`;
-      const shouldEnter = !prevVisible[key];
-      const shouldFlip =
-        !shouldEnter && shouldAnimatePointerFlip(prevEntry?.center, newCenter);
 
-      if (shouldFlip) {
-        let visualCenter = prevEntry?.center ?? newCenter;
-        const rectBefore = preClearPointers[key];
-        const trackRect = barsTrackRef.current?.getBoundingClientRect();
-        if (rectBefore && trackRect) {
-           visualCenter = (rectBefore.left + rectBefore.width / 2 - trackRect.left) / layoutScale;
-        }
-        const deltaX = visualCenter - newCenter;
+      if (decision.targetCenter !== undefined) {
+        el.style.left = `${decision.targetCenter}px`;
+      }
 
-        primePointerMoveFlip(el, deltaX);
+      if (decision.shouldFlip && decision.deltaX !== undefined) {
+        primePointerMoveFlip(el, decision.deltaX);
         el.getBoundingClientRect();
         flipEls.push(el);
       } else {
         settlePointerMoveAtRest(el);
       }
-      if (shouldEnter) {
+
+      if (decision.shouldEnter) {
         enterEls.push(el);
       }
-      nextVisible[key] = true;
-    };
-
-    stagePointer("i", pointerIRef.current, iCenter, prevPtr.i, pointers.i);
-    stagePointer("j", pointerJRef.current, jCenter, prevPtr.j, pointers.j);
-    stagePointer(
-      "jMinus1",
-      pointerJMinus1Ref.current,
-      jm1Center,
-      prevPtr.jMinus1,
-      pointers.jMinus1
-    );
-    const minIdx =
-      showMinRow && typeof viz.minIndex === "number" && viz.minIndex >= 0
-        ? viz.minIndex
-        : undefined;
-    stagePointer("min", pointerMinRef.current, minCenter, prevPtr.min, minIdx);
+    }
 
     const playPointerEnter = () => {
       for (const el of enterEls) {
@@ -635,21 +646,8 @@ export function AnimationPanel({
       },
     });
 
-    const nextPtr: PointerMetaMap = {};
-    if (typeof pointers.i === "number" && iCenter !== undefined) {
-      nextPtr.i = { idx: pointers.i, center: iCenter };
-    }
-    if (typeof pointers.j === "number" && jCenter !== undefined) {
-      nextPtr.j = { idx: pointers.j, center: jCenter };
-    }
-    if (typeof pointers.jMinus1 === "number" && jm1Center !== undefined) {
-      nextPtr.jMinus1 = { idx: pointers.jMinus1, center: jm1Center };
-    }
-    if (typeof minIdx === "number" && minCenter !== undefined) {
-      nextPtr.min = { idx: minIdx, center: minCenter };
-    }
-    prevPointerMetaRef.current = nextPtr;
-    prevPointerVisibleRef.current = nextVisible;
+    prevPointerMetaRef.current = pointerPlan.nextMeta;
+    prevPointerVisibleRef.current = pointerPlan.nextVisible;
 
     prevValuesRef.current = [...viz.values];
     prevRectsRef.current = currentRects;

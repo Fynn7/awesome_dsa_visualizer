@@ -13,6 +13,7 @@ describe("animation single-source constraints", () => {
     expect(source).toContain('from "../lib/pointerMoveAnimation"');
     expect(source).toContain('from "../lib/pointerLifecycleAnimation"');
     expect(source).toContain('from "../lib/pointerRegistry"');
+    expect(source).toContain('from "../lib/pointerStagePlan"');
     expect(source).toContain('from "../lib/barAnimationPolicy"');
     expect(source).toContain('from "../lib/visualBars"');
     expect(source).toContain('from "../lib/visualToneClassMap"');
@@ -30,6 +31,19 @@ describe("animation single-source constraints", () => {
     );
     expect(source).not.toMatch(
       /height\s*\$\{[^}]+\}ms\s*cubic-bezier\(0\.22,\s*1,\s*0\.36,\s*1\)/
+    );
+  });
+
+  it("forbids algorithm-specific branching in AnimationPanel", () => {
+    const source = readWorkspaceFile("src/components/AnimationPanel.tsx");
+
+    // Keep algorithm behavior dispatch inside algorithmSpecs, not in view logic.
+    expect(source).not.toMatch(/switch\s*\(\s*algorithmId\s*\)/);
+    expect(source).not.toMatch(
+      /\balgorithmId\s*(===|!==)\s*["'][^"']+["']/
+    );
+    expect(source).not.toMatch(
+      /\[[^\]]+["'][^"']+["'][^\]]*\]\.includes\(\s*algorithmId\s*\)/
     );
   });
 });

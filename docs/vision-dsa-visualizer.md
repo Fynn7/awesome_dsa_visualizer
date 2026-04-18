@@ -14,6 +14,7 @@ Developer implementation reminder: animation categories use centralized modules 
 - pointer move: **[`src/lib/pointerMoveAnimation.ts`](../src/lib/pointerMoveAnimation.ts)**
 - pointer enter/exit lifecycle: **[`src/lib/pointerLifecycleAnimation.ts`](../src/lib/pointerLifecycleAnimation.ts)**
 - pointer key registry and visibility map: **[`src/lib/pointerRegistry.ts`](../src/lib/pointerRegistry.ts)**
+- pointer stage planning policy: **[`src/lib/pointerStagePlan.ts`](../src/lib/pointerStagePlan.ts)**
 - bar FLIP/assign policy: **[`src/lib/barAnimationPolicy.ts`](../src/lib/barAnimationPolicy.ts)**
 - bar identity derivation/reuse: **[`src/lib/visualBars.ts`](../src/lib/visualBars.ts)**
 - tone/class mapping: **[`src/lib/visualToneClassMap.ts`](../src/lib/visualToneClassMap.ts)**
