@@ -97,10 +97,12 @@ describe("selection sort demo (DSA exch + intArray)", () => {
 
     expect(withMin.length).toBeGreaterThan(0);
     for (const step of withMin) {
-      expect(step.viz.minIndex).toBe(Number(step.variables.min_idx));
+      const vizMin = "minIndex" in step.viz ? step.viz.minIndex : undefined;
+      expect(vizMin).toBe(Number(step.variables.min_idx));
     }
     for (const step of withoutMin) {
-      expect(step.viz.minIndex).toBeUndefined();
+      const vizMin = "minIndex" in step.viz ? step.viz.minIndex : undefined;
+      expect(vizMin).toBeUndefined();
     }
   });
 });

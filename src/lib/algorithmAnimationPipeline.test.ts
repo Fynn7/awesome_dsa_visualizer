@@ -46,9 +46,10 @@ function buildPointerTargets(step: MockStep, inferJMinus1FromHighlights: boolean
     step.viz,
     inferJMinus1FromHighlights
   );
+  const vizMinIndex = "minIndex" in step.viz ? step.viz.minIndex : undefined;
   const minIdx =
-    typeof step.viz.minIndex === "number" && step.viz.minIndex >= 0
-      ? step.viz.minIndex
+    typeof vizMinIndex === "number" && vizMinIndex >= 0
+      ? vizMinIndex
       : undefined;
   const centers = layoutPointerOverlayCenters(
     pointers,
@@ -83,8 +84,14 @@ describe("algorithm animation shared pipeline", () => {
 
       let pointerDecisionCount = 0;
       let barToneCheckCount = 0;
+      let dsuGraphStepCount = 0;
 
       for (const step of trace) {
+        if (step.viz.kind === "dsuGraph") {
+          expect(step.viz.nodes.length).toBe(step.viz.values.length);
+          dsuGraphStepCount += 1;
+          continue;
+        }
         // Algorithm-specific hooks are resolved by algorithmSpec, not by panel branching.
         const sortedExclusiveEnd = spec.visual.getSortedExclusiveEnd({
           stepLine: step.line,
@@ -175,8 +182,12 @@ describe("algorithm animation shared pipeline", () => {
 
       const envelope = getAlgorithmEnvelopeTraces(id, trace);
       expect(envelope.length).toBeGreaterThan(0);
-      expect(pointerDecisionCount).toBeGreaterThan(0);
-      expect(barToneCheckCount).toBeGreaterThan(0);
+      if (dsuGraphStepCount > 0) {
+        expect(dsuGraphStepCount).toBe(trace.length);
+      } else {
+        expect(pointerDecisionCount).toBeGreaterThan(0);
+        expect(barToneCheckCount).toBeGreaterThan(0);
+      }
     }
   });
 });

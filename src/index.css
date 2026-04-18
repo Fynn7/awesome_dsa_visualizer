@@ -1136,6 +1136,84 @@ button {
   gap: 0.45rem;
 }
 
+.viz-dsu-graph {
+  position: relative;
+  width: 30rem;
+  min-height: 17rem;
+}
+
+/* Anchor at circle center (matches SVG edge geometry); id label at top-right of the circle. */
+.viz-dsu-node-slot {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.viz-dsu-edges {
+  width: 100%;
+  height: 100%;
+}
+
+.viz-dsu-edge {
+  stroke: color-mix(in srgb, var(--border) 70%, #6ccfc0 30%);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.viz-dsu-edge--muted {
+  stroke-opacity: 0.52;
+}
+
+.viz-dsu-edge--active {
+  stroke: var(--accent);
+  stroke-width: 4;
+}
+
+.viz-dsu-node {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 2.4rem;
+  height: 2.4rem;
+  margin-left: -1.2rem;
+  margin-top: -1.2rem;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: #eaf7f4;
+  border: 1px solid color-mix(in srgb, var(--border) 75%, #87efe0 25%);
+  background: #0b2a29;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18) inset;
+}
+
+.viz-dsu-node-idval {
+  position: absolute;
+  left: calc(1.2rem + 0.24rem);
+  top: -1.46rem;
+  z-index: 1;
+  transform: translateX(-100%);
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: color-mix(in srgb, var(--text) 88%, var(--border) 12%);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  white-space: nowrap;
+}
+
+.viz-dsu-node--active {
+  transform: scale(1.06);
+  transform-origin: center center;
+  border-color: var(--accent);
+}
+
 .viz-envelope-measure {
   position: fixed;
   left: -20000px;

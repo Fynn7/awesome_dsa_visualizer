@@ -1,8 +1,10 @@
 import { AppWindow, Maximize2 } from "lucide-react";
 import {
   type AlgorithmId,
+  type DsuGraphNode,
+  type MockDsuGraphViz,
+  type MockVizModel,
   type MockStep,
-  type MockViz,
 } from "../lib/mockTrace";
 import {
   getAlgorithmEnvelopeTraces,
@@ -75,6 +77,17 @@ import {
   deriveVisualBars,
   type VisualBar,
 } from "../lib/visualBars";
+import {
+  buildDsuOrthogonalPolylinePoints,
+  dsuRow0LaneIndex,
+  dsuRow1LongEdgeGutterY,
+  dsuEdgeEuclideanLength,
+  dsuPointsToSmoothPathD,
+  DSU_LONG_EDGE_THRESHOLD_PX,
+  DSU_SVG_VIEW_HEIGHT,
+  DSU_SVG_VIEW_WIDTH,
+  getDsuNodePosition,
+} from "../lib/dsuGraphLayout";
 import { strings } from "../strings";
 import { PanelSkeleton } from "./LoadingState";
 import {
@@ -100,7 +113,7 @@ export type StepPointerNavigation = {
 
 type Props = {
   trace: MockStep[];
-  viz: MockViz;
+  viz: MockVizModel;
   variables: Record<string, string>;
   algorithmId: AlgorithmId;
   stepLine: number;
@@ -140,6 +153,40 @@ function buildVizAriaLabel(
     parts.push(`length ${length}, indices 0 to ${length - 1}`);
   }
   return parts.join(". ");
+}
+
+function buildDsuGraphAriaLabel(viz: MockDsuGraphViz): string {
+  const active =
+    viz.activeEdge !== undefined
+      ? `Current union edge ${viz.activeEdge.from} to ${viz.activeEdge.to}. `
+      : "";
+  const idPart = viz.nodes.map((n) => `id[${n.id}]=${n.group}`).join(", ");
+  return `${viz.caption}. ${active}${idPart}. ${viz.nodes.length} nodes, ${viz.edges.length} edges.`;
+}
+
+function DsuNodeSlot({
+  node,
+  active,
+}: {
+  node: DsuGraphNode;
+  active: boolean;
+}) {
+  const pos = getDsuNodePosition(node.id);
+  return (
+    <div
+      className="viz-dsu-node-slot"
+      style={{ left: `${pos.x}px`, top: `${pos.y}px` }}
+    >
+      <div
+        className={`viz-dsu-node${active ? " viz-dsu-node--active" : ""}`}
+      >
+        {node.id}
+      </div>
+      <span className="viz-dsu-node-idval" aria-hidden>
+        {node.group}
+      </span>
+    </div>
+  );
 }
 
 export function AnimationPanel({
@@ -260,9 +307,9 @@ export function AnimationPanel({
     () => splitCaptionByBackticks(displayCaption),
     [displayCaption]
   );
+  const vizMinIndex = "minIndex" in viz ? viz.minIndex : undefined;
   const maxVal = Math.max(1, ...viz.values);
-  const showMinRow =
-    typeof viz.minIndex === "number" && viz.minIndex >= 0;
+  const showMinRow = typeof vizMinIndex === "number" && vizMinIndex >= 0;
   const envelopeTraces = useMemo(
     () => getAlgorithmEnvelopeTraces(algorithmId, trace),
     [algorithmId, trace]
@@ -273,12 +320,23 @@ export function AnimationPanel({
         step.viz.caption,
         step.variables
       );
+      if (step.viz.kind === "dsuGraph") {
+        return {
+          kind: "dsuGraph" as const,
+          captionParts: splitCaptionByBackticks(displayStepCaption),
+          nodes: step.viz.nodes,
+          edges: step.viz.edges,
+        };
+      }
       return {
+        kind: "bars" as const,
         captionParts: splitCaptionByBackticks(displayStepCaption),
         values: step.viz.values,
         maxVal: Math.max(1, ...step.viz.values),
         showMinSlot:
-          typeof step.viz.minIndex === "number" && step.viz.minIndex >= 0,
+          "minIndex" in step.viz &&
+          typeof step.viz.minIndex === "number" &&
+          step.viz.minIndex >= 0,
       };
     };
 
@@ -410,7 +468,7 @@ export function AnimationPanel({
         pointers,
         colCenterInTrackAtRest,
         SPLIT_OFFSET,
-        showMinRow ? viz.minIndex : undefined
+        showMinRow ? vizMinIndex : undefined
       );
       iCenter = ptrCenters.i;
       jCenter = ptrCenters.j;
@@ -517,8 +575,8 @@ export function AnimationPanel({
     const enterEls: HTMLSpanElement[] = [];
 
     const minIdx =
-      showMinRow && typeof viz.minIndex === "number" && viz.minIndex >= 0
-        ? viz.minIndex
+      showMinRow && typeof vizMinIndex === "number" && vizMinIndex >= 0
+        ? vizMinIndex
         : undefined;
 
     const pointerTargets: PointerTargetMap = {
@@ -680,7 +738,7 @@ export function AnimationPanel({
     flipDurationMs,
     viz.values,
     pointers,
-    viz.minIndex,
+    vizMinIndex,
     showMinRow,
     shouldShowArrayIndices,
     fitScale,
@@ -762,8 +820,11 @@ export function AnimationPanel({
     stripCaptionBackticks(displayCaption),
     pointers,
     viz.values.length,
-    viz.minIndex
+    vizMinIndex
   );
+  const isDsuGraph = viz.kind === "dsuGraph";
+  const dsuViz = isDsuGraph ? (viz as MockDsuGraphViz) : null;
+  const vizAriaLabel = dsuViz ? buildDsuGraphAriaLabel(dsuViz) : ariaLabel;
   const fixedBundleStyle =
     !enableAnimationScroll && fitEnvelopeSize
       ? { width: `${fitEnvelopeSize.width}px` }
@@ -885,11 +946,73 @@ export function AnimationPanel({
                       )}
                     </p>
                     <div
-                      className="viz-bars"
+                      className={dsuViz ? "viz-dsu-graph" : "viz-bars"}
                       ref={barsTrackRef}
                       role="img"
-                      aria-label={ariaLabel}
+                      aria-label={vizAriaLabel}
                     >
+                      {dsuViz ? (
+                        <>
+                          <svg
+                            className="viz-dsu-edges"
+                            viewBox={`0 0 ${DSU_SVG_VIEW_WIDTH} ${DSU_SVG_VIEW_HEIGHT}`}
+                            preserveAspectRatio="xMidYMid meet"
+                            aria-hidden
+                          >
+                            {dsuViz.edges.map((edge, idx) => {
+                              const points = buildDsuOrthogonalPolylinePoints(
+                                edge.from,
+                                edge.to,
+                                undefined,
+                                {
+                                  row0LaneIndex: dsuRow0LaneIndex(
+                                    dsuViz.edges,
+                                    idx
+                                  ),
+                                  row1LongEdgeGutterY: dsuRow1LongEdgeGutterY(
+                                    dsuViz.edges,
+                                    idx
+                                  ),
+                                }
+                              );
+                              const isActive =
+                                dsuViz.activeEdge?.from === edge.from &&
+                                dsuViz.activeEdge?.to === edge.to;
+                              const isLong =
+                                dsuEdgeEuclideanLength(edge.from, edge.to) >
+                                DSU_LONG_EDGE_THRESHOLD_PX;
+                              const forceUniform = dsuViz.uniformEdgeColor === true;
+                              const edgeClass = [
+                                "viz-dsu-edge",
+                                !forceUniform && isActive
+                                  ? "viz-dsu-edge--active"
+                                  : "",
+                                !forceUniform && !isActive && isLong
+                                  ? "viz-dsu-edge--muted"
+                                  : "",
+                              ]
+                                .filter(Boolean)
+                                .join(" ");
+                              return (
+                                <path
+                                  key={`${edge.from}-${edge.to}-${idx}`}
+                                  d={dsuPointsToSmoothPathD(points)}
+                                  fill="none"
+                                  className={edgeClass}
+                                />
+                              );
+                            })}
+                          </svg>
+                          {dsuViz.nodes.map((node: DsuGraphNode) => (
+                            <DsuNodeSlot
+                              key={node.id}
+                              node={node}
+                              active={dsuViz.highlightIndices.includes(node.id)}
+                            />
+                          ))}
+                        </>
+                      ) : (
+                        <>
                         <div className="viz-pointers-layer" aria-hidden>
                         {pointers.i !== undefined ||
                         pointerTransitionStateRef.current.i.mounted ? (
@@ -997,6 +1120,8 @@ export function AnimationPanel({
                           </div>
                         );
                         })}
+                        </>
+                      )}
                       </div>
                   </div>
                 </div>
@@ -1024,29 +1149,76 @@ export function AnimationPanel({
                     )
                   )}
                 </p>
-                <div className="viz-bars" aria-hidden>
-                  {step.values.map((n, idx) => {
-                    const h = getBarHeightPercent(n, step.maxVal);
-                    return (
-                      <div key={idx} className="viz-bar-col">
-                        <div className="viz-pointers" aria-hidden />
-                        {step.showMinSlot ? (
-                          <div className="viz-min-slot" aria-hidden />
-                        ) : null}
-                        <div className="viz-bar-track">
-                          <div className="viz-bar" style={{ height: h }}>
-                            {n}
+                {step.kind === "dsuGraph" ? (
+                  <div className="viz-dsu-graph" aria-hidden>
+                    <svg
+                      className="viz-dsu-edges"
+                      viewBox={`0 0 ${DSU_SVG_VIEW_WIDTH} ${DSU_SVG_VIEW_HEIGHT}`}
+                      preserveAspectRatio="xMidYMid meet"
+                    >
+                      {step.edges.map((edge, idx) => {
+                        const points = buildDsuOrthogonalPolylinePoints(
+                          edge.from,
+                          edge.to,
+                          undefined,
+                          {
+                            row0LaneIndex: dsuRow0LaneIndex(
+                              step.edges,
+                              idx
+                            ),
+                            row1LongEdgeGutterY: dsuRow1LongEdgeGutterY(
+                              step.edges,
+                              idx
+                            ),
+                          }
+                        );
+                        const isLong =
+                          dsuEdgeEuclideanLength(edge.from, edge.to) >
+                          DSU_LONG_EDGE_THRESHOLD_PX;
+                        const forceUniform = step.uniformEdgeColor === true;
+                        return (
+                          <path
+                            key={`${edge.from}-${edge.to}-${idx}`}
+                            d={dsuPointsToSmoothPathD(points)}
+                            fill="none"
+                            className={
+                              !forceUniform && isLong
+                                ? "viz-dsu-edge viz-dsu-edge--muted"
+                                : "viz-dsu-edge"
+                            }
+                          />
+                        );
+                      })}
+                    </svg>
+                    {step.nodes.map((node) => (
+                      <DsuNodeSlot key={node.id} node={node} active={false} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="viz-bars" aria-hidden>
+                    {step.values.map((n, idx) => {
+                      const h = getBarHeightPercent(n, step.maxVal);
+                      return (
+                        <div key={idx} className="viz-bar-col">
+                          <div className="viz-pointers" aria-hidden />
+                          {step.showMinSlot ? (
+                            <div className="viz-min-slot" aria-hidden />
+                          ) : null}
+                          <div className="viz-bar-track">
+                            <div className="viz-bar" style={{ height: h }}>
+                              {n}
+                            </div>
                           </div>
+                          {shouldShowArrayIndices ? (
+                            <div className="viz-index" aria-hidden>
+                              {idx}
+                            </div>
+                          ) : null}
                         </div>
-                        {shouldShowArrayIndices ? (
-                          <div className="viz-index" aria-hidden>
-                            {idx}
-                          </div>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             ))}
           </div>

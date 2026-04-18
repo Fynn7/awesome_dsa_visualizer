@@ -7,7 +7,7 @@ A browser-based visualization tool for teaching university-level data structures
 
 - **Step-by-step execution**
   - Highlighted current line inside Python code.
-  - Synchronized animation in the visualization panel (for example, sorting traces).
+  - Synchronized animation in the visualization panel (for example, sorting traces and union-find graph steps).
   - Persistent variable tracking area, optimized for classroom readability.
 
 - **Teaching-focused workspace**
@@ -20,11 +20,20 @@ A browser-based visualization tool for teaching university-level data structures
 
 - **Minimal search home**
   - `/` shows a Google-like minimal entry page with a single algorithm search input.
+  - Includes `Quick Find` for *Exercise 1: Analysis of quick-find*.
   - Search behavior and row highlighting reuse the same matching and UI style as the in-app command palette.
   - Each query piece must fuzzy-match the item title before that item can appear in results.
   - Press `Enter` to open the top match, or choose a row with keyboard/mouse; both go to `/app`.
   - If there is no match, you stay on `/` and see the same empty-state copy used by command palette.
   - If the route throws an uncaught error while rendering, the app shows a full-screen recovery screen (back to home or reload). User-visible copy is defined in `src/strings.ts` under `routeError`.
+
+### Quick Find Exercise Trace
+
+- `Quick Find` uses a precomputed trace for the sequence `(9,0) (3,4) (5,8) (7,2) (2,1) (5,7) (0,3) (4,2)`.
+- Displayed source is synced with `src_py/uebung1.py` (full file content, including `connected` and input loop).
+- The Animation panel renders a DSU graph (`0..9` nodes): each circle labels vertex index `i`, with the current `id[i]` value shown at the top-right of the circle. Union edges are SVG paths that follow the same detour keypoints as before (endpoints on node circles) with small rounded corners at bends so lines stay close to the guide polyline; segments that would cross unrelated nodes still route through a horizontal gutter (cross-row pairs use the mid channel between the two rows; non-adjacent pairs on the **top** row use stacked channels **between** the top row and the mid gutter so they do not overlap cross-row routes such as 0–9; non-adjacent pairs on the **bottom** row use stacked channels **above** that row but **below** the mid gutter, with lane height determined by span width so wider spans such as 5–8 keep a stable y across steps, while narrower spans such as 5–7 are always placed slightly lower than 5–8 to avoid overlap). A new union edge is added only after the trace hits `if self.id[i] == pid` with a match (aligned with the Python control flow), then stays for the rest of that union; longer non-highlighted edges are slightly de-emphasized. The current union edge is highlighted while it is active, and the last `Finished` frame renders all edges with one uniform color.
+- The code panel uses fine-grained execution highlighting inside `QuickFindUF.union` with real line timing (`19 -> 20 -> 21 -> 22 -> 23 -> 24`).
+- `array_accesses` is shown as a running counter per sub-step in both caption and Variables, and each union completion still matches the official totals.
 
 - **Presentation modes**
   - Native browser fullscreen presentation when available.

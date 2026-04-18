@@ -35,6 +35,7 @@ export type AlgorithmSpec = {
 
 const noJInactivePhase = () => false;
 const BAR_SORT_PAIR_ENVELOPE_IDS = ["insertion", "selection"] as const;
+const SINGLE_TRACE_ENVELOPE_IDS = [] as const;
 
 const ALGORITHM_SPECS: Record<AlgorithmId, AlgorithmSpec> = {
   insertion: {
@@ -63,6 +64,17 @@ const ALGORITHM_SPECS: Record<AlgorithmId, AlgorithmSpec> = {
         return isSelectionJInactivePhase("selection", stepLine, jIndex);
       },
       envelopeTraceIds: BAR_SORT_PAIR_ENVELOPE_IDS,
+    },
+  },
+  "quick-find": {
+    id: "quick-find",
+    title: "Quick Find",
+    searchBlob: "exercise 1 quick find union-find dsu id array accesses",
+    visual: {
+      inferJMinus1FromHighlights: false,
+      getSortedExclusiveEnd: () => undefined,
+      isJInactivePhase: noJInactivePhase,
+      envelopeTraceIds: SINGLE_TRACE_ENVELOPE_IDS,
     },
   },
 };

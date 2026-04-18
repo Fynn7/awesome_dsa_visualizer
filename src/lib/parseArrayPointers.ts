@@ -1,4 +1,4 @@
-import type { MockViz } from "./mockTrace";
+import type { MockVizModel } from "./mockTrace";
 
 /** Non-negative integer string only (excludes "-1", "--", decimals). */
 const NON_NEG_INT = /^\d+$/;
@@ -42,7 +42,7 @@ export type ResolvedArrayPointers = {
  */
 export function resolveArrayPointers(
   variables: Record<string, string>,
-  viz: MockViz,
+  viz: Pick<MockVizModel, "values" | "highlightIndices">,
   inferJMinus1FromHighlights: boolean
 ): ResolvedArrayPointers {
   const base = parseArrayPointers(variables, viz.values.length);
