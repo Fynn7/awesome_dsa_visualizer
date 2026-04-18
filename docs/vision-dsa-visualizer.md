@@ -10,6 +10,18 @@ You are planning a visualization tool for university-level DSA (Data Structures 
 
 Pointer elements that move with index changes in the animation panel (`i`, `j`, `j-1`, selection sort `min`, etc.), including transition behavior, enter animation (`hidden -> visible`), visibility recovery during rapid step navigation, and de-overlap rules, are specified in the English source of truth: **[ui-design.md §9](ui-design.md)**.
 
+Developer implementation reminder: animation categories use centralized modules and must be reused by all algorithms:
+- pointer move: **[`src/lib/pointerMoveAnimation.ts`](../src/lib/pointerMoveAnimation.ts)**
+- pointer enter/exit lifecycle: **[`src/lib/pointerLifecycleAnimation.ts`](../src/lib/pointerLifecycleAnimation.ts)**
+- pointer key registry and visibility map: **[`src/lib/pointerRegistry.ts`](../src/lib/pointerRegistry.ts)**
+- pointer stage planning policy: **[`src/lib/pointerStagePlan.ts`](../src/lib/pointerStagePlan.ts)**
+- bar FLIP/assign policy: **[`src/lib/barAnimationPolicy.ts`](../src/lib/barAnimationPolicy.ts)**
+- bar identity derivation/reuse: **[`src/lib/visualBars.ts`](../src/lib/visualBars.ts)**
+- tone/class mapping: **[`src/lib/visualToneClassMap.ts`](../src/lib/visualToneClassMap.ts)**
+- shared motion tokens: **[`src/lib/motionTokens.ts`](../src/lib/motionTokens.ts)**
+
+Algorithm additions should extend `algorithmSpecs.ts` for behavior differences and must not define local ad-hoc animation parameters.
+
 - Code editor area
 - Console output area
 - Animation area

@@ -7,15 +7,13 @@ import {
   useSearchParams,
 } from "react-router-dom";
 import App from "./App";
-import type { AlgorithmId } from "./lib/mockTrace";
-import { getFilteredPaletteItems } from "./lib/commandPaletteItems";
+import { type AlgorithmId } from "./lib/mockTrace";
+import { getAlgorithmIds } from "./lib/algorithmSpecs";
 import { HomePage } from "./pages/HomePage";
 import { RouteErrorPage } from "./pages/RouteErrorPage";
 import "./index.css";
 
-const VALID_ALGORITHM_IDS = new Set<AlgorithmId>(
-  getFilteredPaletteItems("").map(({ item }) => item.id)
-);
+const VALID_ALGORITHM_IDS = new Set<AlgorithmId>(getAlgorithmIds());
 
 function MainPage() {
   const [searchParams] = useSearchParams();

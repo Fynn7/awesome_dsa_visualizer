@@ -1,22 +1,36 @@
 import { AppWindow, Maximize2 } from "lucide-react";
 import {
-  insertionSortTrace,
-  selectionSortTrace,
+  getAlgorithmDemo,
   type AlgorithmId,
   type MockStep,
   type MockViz,
 } from "../lib/mockTrace";
-import { selectionSortedExclusiveEnd } from "../lib/selectionSortedPrefix";
-import { isSelectionJInactivePhase } from "../lib/selectionPointerPhase";
+import {
+  getAlgorithmEnvelopeTraces,
+  getAlgorithmSpec,
+} from "../lib/algorithmSpecs";
 import {
   layoutPointerOverlayCenters,
   resolveArrayPointers,
   type ResolvedArrayPointers,
 } from "../lib/parseArrayPointers";
-import type { BarTone } from "../lib/vizBarTone";
 import { barToneForIndex } from "../lib/vizBarTone";
+import {
+  barClassNameForTone,
+  pointerToneClassForTone,
+} from "../lib/visualToneClassMap";
 import { getAnimationDurationMs } from "../lib/speedPresets";
 import { formatVizCaptionForDisplay } from "../lib/formatVizCaptionForDisplay";
+import {
+  applyPointerEnterAnimation,
+  clearPointerEnterAnimation,
+  clearPointerExiting,
+  getPointerEnterCleanupDelayMs,
+  getPointerEnterDurationMs,
+  markPointerExiting,
+  POINTER_EXIT_CLASS,
+  setPointerAnimationDuration,
+} from "../lib/pointerLifecycleAnimation";
 import {
   beginPointerExit,
   completePointerExit,
@@ -27,6 +41,41 @@ import {
   schedulePointerPlayback,
   shouldAnimatePointerFlip,
 } from "../lib/pointerAnimationScheduler";
+import {
+  planPointerStage,
+  type PointerTargetMap,
+} from "../lib/pointerStagePlan";
+import {
+  playPointerMoveFlip,
+  primePointerMoveFlip,
+  settlePointerMoveAtRest,
+} from "../lib/pointerMoveAnimation";
+import {
+  finishBarAssignAnimation,
+  getBarAssignCleanupDelayMs,
+  getBarHeightPercent,
+  playBarAssignAnimation,
+  playBarFlip,
+  primeBarAssignAnimation,
+  primeBarFlip,
+  resetBarFlipStyles,
+  shouldAnimateBarFlip,
+} from "../lib/barAnimationPolicy";
+import {
+  beginAnimationRun,
+  createAnimationRunGuard,
+  isAnimationRunCurrent,
+} from "../lib/animationRunGuard";
+import {
+  ARRAY_POINTER_KEYS,
+  createPointerVisibilityMap,
+  type PointerKey,
+  type PointerMetaMap,
+} from "../lib/pointerRegistry";
+import {
+  deriveVisualBars,
+  type VisualBar,
+} from "../lib/visualBars";
 import { strings } from "../strings";
 import { PanelSkeleton } from "./LoadingState";
 import {
@@ -72,29 +121,6 @@ const PRESENT_ICON = { size: 16, strokeWidth: 2 } as const;
 
 /** Caps viz zoom when the panel is large and the diagram is tiny (rem-based layout). */
 const MAX_VIZ_UPSCALE = 6;
-
-type VisualBar = {
-  id: string;
-  value: number;
-};
-
-type PointerKey = "i" | "j" | "jMinus1" | "min";
-const ARRAY_POINTER_KEYS: readonly PointerKey[] = ["i", "j", "jMinus1", "min"];
-
-function pointerToneClass(tone: BarTone): string {
-  switch (tone) {
-    case "key":
-      return "viz-pointer--toneKey";
-    case "hl":
-      return "viz-pointer--toneHl";
-    case "min":
-      return "viz-pointer--toneMin";
-    case "sorted":
-      return "viz-pointer--toneSorted";
-    default:
-      return "viz-pointer--toneNeutral";
-  }
-}
 
 function buildVizAriaLabel(
   caption: string,
@@ -150,22 +176,13 @@ export function AnimationPanel({
   const pointerExitTimerByKeyRef = useRef<
     Partial<Record<PointerKey, number>>
   >({});
+  const animationRunGuardRef = useRef(createAnimationRunGuard());
   const pointerTransitionStateRef = useRef(
     createPointerTransitionMap(ARRAY_POINTER_KEYS)
   );
   const [, setPointerTransitionRevision] = useState(0);
-  const prevPointerVisibleRef = useRef<Record<PointerKey, boolean>>({
-    i: false,
-    j: false,
-    jMinus1: false,
-    min: false,
-  });
-  const prevPointerMetaRef = useRef<{
-    i?: { idx: number; center: number };
-    j?: { idx: number; center: number };
-    jMinus1?: { idx: number; center: number };
-    min?: { idx: number; center: number };
-  }>({});
+  const prevPointerVisibleRef = useRef(createPointerVisibilityMap());
+  const prevPointerMetaRef = useRef<PointerMetaMap>({});
   const fitViewportRef = useRef<HTMLDivElement | null>(null);
   const graphSlotRef = useRef<HTMLDivElement | null>(null);
   const graphFitRef = useRef<HTMLDivElement | null>(null);
@@ -194,80 +211,47 @@ export function AnimationPanel({
   const shouldShowArrayIndices = showArrayIndices;
 
   const bars = useMemo(() => {
-    const prevBars = prevBarsRef.current;
-    const nextBars: VisualBar[] = new Array(viz.values.length);
-    const usedPrevIds = new Set<string>();
-
-    // Pass 1: keep identity stable when same index keeps same value.
-    for (let i = 0; i < viz.values.length; i += 1) {
-      const prevBarAtIndex = prevBars[i];
-      if (!prevBarAtIndex) continue;
-      if (prevBarAtIndex.value !== viz.values[i]) continue;
-      nextBars[i] = { id: prevBarAtIndex.id, value: viz.values[i]! };
-      usedPrevIds.add(prevBarAtIndex.id);
-    }
-
-    // Build remaining reusable ids by value (excluding already reserved ids).
-    const reusableByValue = new Map<number, string[]>();
-    for (const prevBar of prevBars) {
-      if (usedPrevIds.has(prevBar.id)) continue;
-      const queue = reusableByValue.get(prevBar.value);
-      if (queue) {
-        queue.push(prevBar.id);
-      } else {
-        reusableByValue.set(prevBar.value, [prevBar.id]);
-      }
-    }
-
-    // Pass 2: reuse same-value ids from other indexes (for swap/shift), else mint.
-    for (let i = 0; i < viz.values.length; i += 1) {
-      if (nextBars[i]) continue;
-      const value = viz.values[i]!;
-      const queue = reusableByValue.get(value);
-      if (queue && queue.length > 0) {
-        nextBars[i] = { id: queue.shift()!, value };
-      } else {
-        barIdSeedRef.current += 1;
-        nextBars[i] = { id: `bar-${barIdSeedRef.current}`, value };
-      }
-    }
-
+    const { bars: nextBars, nextSeed } = deriveVisualBars(
+      prevBarsRef.current,
+      viz.values,
+      barIdSeedRef.current
+    );
+    barIdSeedRef.current = nextSeed;
     return nextBars;
   }, [viz.values]);
 
   const flipDurationMs = getAnimationDurationMs(speedMs, isAutoPlayingStep);
-  const pointerEnterDurationMs = Math.max(
-    120,
-    Math.min(480, Math.round(flipDurationMs * 0.4))
-  );
+  const pointerEnterDurationMs = getPointerEnterDurationMs(flipDurationMs);
   const bumpPointerTransitionRevision = useCallback(() => {
     setPointerTransitionRevision((v) => v + 1);
   }, []);
+  const algorithmSpec = useMemo(
+    () => getAlgorithmSpec(algorithmId),
+    [algorithmId]
+  );
   const pointers = useMemo(
     () =>
       resolveArrayPointers(
         variables,
         viz,
-        algorithmId === "insertion"
+        algorithmSpec.visual.inferJMinus1FromHighlights
       ),
-    [algorithmId, variables, viz]
+    [algorithmSpec, variables, viz]
   );
   const sortedExclusiveEnd = useMemo(() => {
-    if (algorithmId === "selection") {
-      return selectionSortedExclusiveEnd(
+    return algorithmSpec.visual.getSortedExclusiveEnd({
+      stepLine,
+      variables,
+      valuesLength: viz.values.length,
+    });
+  }, [algorithmSpec, stepLine, variables, viz.values.length]);
+  const isJInactive = useMemo(
+    () =>
+      algorithmSpec.visual.isJInactivePhase({
         stepLine,
-        variables,
-        viz.values.length
-      );
-    }
-    if (algorithmId === "insertion") {
-      return stepLine === 18 ? viz.values.length : undefined;
-    }
-    return undefined;
-  }, [algorithmId, stepLine, variables, viz.values.length]);
-  const isSelectionJInactive = useMemo(
-    () => isSelectionJInactivePhase(algorithmId, stepLine, pointers.j),
-    [algorithmId, stepLine, pointers.j]
+        jIndex: pointers.j,
+      }),
+    [algorithmSpec, stepLine, pointers.j]
   );
   const displayCaption = useMemo(
     () => formatVizCaptionForDisplay(viz.caption, variables),
@@ -280,6 +264,10 @@ export function AnimationPanel({
   const maxVal = Math.max(1, ...viz.values);
   const showMinRow =
     typeof viz.minIndex === "number" && viz.minIndex >= 0;
+  const envelopeTraces = useMemo(
+    () => getAlgorithmEnvelopeTraces(algorithmId, trace, getAlgorithmDemo),
+    [algorithmId, trace]
+  );
   const traceEnvelopeSteps = useMemo(() => {
     const mapStep = (step: MockStep) => {
       const displayStepCaption = formatVizCaptionForDisplay(
@@ -295,27 +283,13 @@ export function AnimationPanel({
       };
     };
 
-    const useBarSortPairEnvelope =
-      algorithmId === "insertion" || algorithmId === "selection";
-
-    if (useBarSortPairEnvelope) {
-      return [
-        ...insertionSortTrace.map((step, stepIdx) => ({
-          envelopeKey: `insertion-${stepIdx}`,
-          ...mapStep(step),
-        })),
-        ...selectionSortTrace.map((step, stepIdx) => ({
-          envelopeKey: `selection-${stepIdx}`,
-          ...mapStep(step),
-        })),
-      ];
-    }
-
-    return trace.map((step, stepIdx) => ({
-      envelopeKey: `trace-${stepIdx}`,
-      ...mapStep(step),
-    }));
-  }, [algorithmId, trace]);
+    return envelopeTraces.flatMap((entry) => {
+      return entry.trace.map((step, stepIdx) => ({
+        envelopeKey: `${entry.id}-${stepIdx}`,
+        ...mapStep(step),
+      }));
+    });
+  }, [envelopeTraces]);
 
   useLayoutEffect(() => {
     if (!isPanelReady) return;
@@ -373,6 +347,9 @@ export function AnimationPanel({
     }
     pointerExitTimerByKeyRef.current = {};
 
+    const animationRunGuard = animationRunGuardRef.current;
+    const animationRunId = beginAnimationRun(animationRunGuard);
+
     const layoutScale =
       enableAnimationScroll || fitScale <= 0 ? 1 : fitScale;
 
@@ -398,9 +375,7 @@ export function AnimationPanel({
     for (const bar of bars) {
       const el = barRefs.current[bar.id];
       if (!el) continue;
-      el.style.transition = "";
-      el.style.transform = "";
-      el.style.willChange = "";
+      resetBarFlipStyles(el);
     }
 
     const currentRects = new Map<string, number>();
@@ -412,6 +387,7 @@ export function AnimationPanel({
 
     const SPLIT_OFFSET = 11;
     const trackEl = barsTrackRef.current;
+    let trackLeft: number | undefined;
     let iCenter: number | undefined;
     let jCenter: number | undefined;
     let jm1Center: number | undefined;
@@ -420,6 +396,7 @@ export function AnimationPanel({
     // invert on columns, otherwise rects are shifted and step-back looks wrong.
     if (trackEl && bars.length > 0) {
       const trackRect = trackEl.getBoundingClientRect();
+      trackLeft = trackRect.left;
       const colCenterInTrackAtRest = (idx: number) => {
         const bar = bars[idx];
         if (!bar) return undefined;
@@ -462,7 +439,7 @@ export function AnimationPanel({
           continue;
         }
         const delta = visualLeft - nextLeft;
-        if (Math.abs(delta) < 0.5) continue;
+        if (!shouldAnimateBarFlip(delta)) continue;
         const el = barRefs.current[bar.id];
         if (!el) continue;
         moved.push({ el, delta, barId: bar.id });
@@ -471,17 +448,20 @@ export function AnimationPanel({
 
       if (moved.length > 0) {
         for (const { el, delta } of moved) {
-          el.style.willChange = "transform";
-          el.style.transition = "none";
-          el.style.transform = `translateX(${delta / layoutScale}px)`;
+          primeBarFlip(el, delta, layoutScale);
           // Ensure transform inversion is committed before playback.
           el.getBoundingClientRect();
         }
 
         rafRef.current = requestAnimationFrame(() => {
+          if (
+            !isAnimationRunCurrent(animationRunGuard, animationRunId)
+          ) {
+            rafRef.current = null;
+            return;
+          }
           for (const { el } of moved) {
-            el.style.transition = `transform ${flipDurationMs}ms cubic-bezier(0.22, 1, 0.36, 1)`;
-            el.style.transform = "translateX(0)";
+            playBarFlip(el, flipDurationMs);
           }
           rafRef.current = null;
         });
@@ -498,141 +478,147 @@ export function AnimationPanel({
         if (movedBarIds.has(bar.id)) continue;
         const innerEl = barInnerRefs.current[bar.id];
         if (!innerEl) continue;
-        const oldPct = `${Math.round((prevVals[i]! / prevMax) * 100)}%`;
-        const newPct = `${Math.round((viz.values[i]! / maxVal) * 100)}%`;
+        const oldPct = getBarHeightPercent(prevVals[i]!, prevMax);
+        const newPct = getBarHeightPercent(viz.values[i]!, maxVal);
         const duration = flipDurationMs;
-        innerEl.style.setProperty("--viz-assign-duration", `${duration}ms`);
-        innerEl.style.height = oldPct;
-        innerEl.style.transition = "none";
-        innerEl.classList.remove("viz-bar--assigning");
+        primeBarAssignAnimation(innerEl, oldPct, duration);
         void innerEl.offsetHeight;
         requestAnimationFrame(() => {
-          innerEl.style.transition = `height ${duration}ms cubic-bezier(0.22, 1, 0.36, 1)`;
-          innerEl.style.height = newPct;
-          innerEl.classList.add("viz-bar--assigning");
+          if (
+            !isAnimationRunCurrent(animationRunGuard, animationRunId)
+          ) {
+            return;
+          }
+          playBarAssignAnimation(innerEl, newPct, duration);
           let done = false;
           const cleanup = () => {
             if (done) return;
             done = true;
             innerEl.removeEventListener("transitionend", cleanup);
             innerEl.removeEventListener("transitioncancel", cleanup);
-            innerEl.style.transition = "";
-            innerEl.classList.remove("viz-bar--assigning");
-            innerEl.style.height = newPct;
+            if (
+              !isAnimationRunCurrent(animationRunGuard, animationRunId)
+            ) {
+              return;
+            }
+            finishBarAssignAnimation(innerEl, newPct);
           };
           innerEl.addEventListener("transitionend", cleanup);
           innerEl.addEventListener("transitioncancel", cleanup);
-          window.setTimeout(cleanup, duration + 120);
+          window.setTimeout(cleanup, getBarAssignCleanupDelayMs(duration));
         });
       }
     }
 
-    const ease = "cubic-bezier(0.22, 1, 0.36, 1)";
     const duration = flipDurationMs;
 
     const prevPtr = prevPointerMetaRef.current;
     const prevVisible = prevPointerVisibleRef.current;
-    const nextVisible: Record<PointerKey, boolean> = {
-      i: false,
-      j: false,
-      jMinus1: false,
-      min: false,
-    };
     const flipEls: HTMLSpanElement[] = [];
     const enterEls: HTMLSpanElement[] = [];
 
-    const stagePointer = (
-      key: PointerKey,
-      el: HTMLSpanElement | null,
-      newCenter: number | undefined,
-      prevEntry: { idx: number; center: number } | undefined,
-      newIdx: number | undefined
-    ) => {
-      const transitionState = pointerTransitionStateRef.current[key];
-      const wasExiting = transitionState.exiting;
-      const pendingExitTimer = pointerExitTimerByKeyRef.current[key];
-      if (!el || newCenter === undefined || newIdx === undefined) {
-        nextVisible[key] = false;
-        if (el) {
-          el.classList.remove("viz-pointer--entering");
-          if (beginPointerExit(pointerTransitionStateRef.current, key)) {
-            el.classList.add("viz-pointer--exiting");
-            const timer = window.setTimeout(() => {
-              completePointerExit(pointerTransitionStateRef.current, key);
-              delete pointerExitTimerByKeyRef.current[key];
-              bumpPointerTransitionRevision();
-            }, pointerEnterDurationMs);
-            pointerExitTimerByKeyRef.current[key] = timer;
-          }
-        }
-        return;
-      }
-      if (typeof pendingExitTimer === "number") {
-        window.clearTimeout(pendingExitTimer);
-        delete pointerExitTimerByKeyRef.current[key];
-      }
-      const hadExitingClassBefore = el.classList.contains("viz-pointer--exiting");
-      showPointer(pointerTransitionStateRef.current, key);
-      if (wasExiting || hadExitingClassBefore) {
-        el.classList.remove("viz-pointer--exiting");
-      }
-      el.style.left = `${newCenter}px`;
-      const shouldEnter = !prevVisible[key];
-      const shouldFlip =
-        !shouldEnter && shouldAnimatePointerFlip(prevEntry?.center, newCenter);
-
-      if (shouldFlip) {
-        let visualCenter = prevEntry?.center ?? newCenter;
-        const rectBefore = preClearPointers[key];
-        const trackRect = barsTrackRef.current?.getBoundingClientRect();
-        if (rectBefore && trackRect) {
-           visualCenter = (rectBefore.left + rectBefore.width / 2 - trackRect.left) / layoutScale;
-        }
-        const deltaX = visualCenter - newCenter;
-        
-        el.style.willChange = "transform";
-        el.style.transition = "none";
-        el.style.transform = `translate(calc(-50% + ${deltaX}px), 0)`;
-        el.getBoundingClientRect();
-        flipEls.push(el);
-      } else {
-        el.style.willChange = "";
-        el.style.transition = "";
-        el.style.transform = "translate(-50%, 0)";
-      }
-      if (shouldEnter) {
-        enterEls.push(el);
-      }
-      nextVisible[key] = true;
-    };
-
-    stagePointer("i", pointerIRef.current, iCenter, prevPtr.i, pointers.i);
-    stagePointer("j", pointerJRef.current, jCenter, prevPtr.j, pointers.j);
-    stagePointer(
-      "jMinus1",
-      pointerJMinus1Ref.current,
-      jm1Center,
-      prevPtr.jMinus1,
-      pointers.jMinus1
-    );
     const minIdx =
       showMinRow && typeof viz.minIndex === "number" && viz.minIndex >= 0
         ? viz.minIndex
         : undefined;
-    stagePointer("min", pointerMinRef.current, minCenter, prevPtr.min, minIdx);
+
+    const pointerTargets: PointerTargetMap = {
+      i: { index: pointers.i, center: iCenter },
+      j: { index: pointers.j, center: jCenter },
+      jMinus1: { index: pointers.jMinus1, center: jm1Center },
+      min: { index: minIdx, center: minCenter },
+    };
+
+    const pointerPlan = planPointerStage({
+      targets: pointerTargets,
+      prevVisible,
+      prevMeta: prevPtr,
+      preClearRects: preClearPointers,
+      trackLeft,
+      layoutScale,
+      shouldAnimateFlip: shouldAnimatePointerFlip,
+    });
+
+    const pointerElements: Record<PointerKey, HTMLSpanElement | null> = {
+      i: pointerIRef.current,
+      j: pointerJRef.current,
+      jMinus1: pointerJMinus1Ref.current,
+      min: pointerMinRef.current,
+    };
+
+    for (const key of ARRAY_POINTER_KEYS) {
+      const el = pointerElements[key];
+      const decision = pointerPlan.decisions[key];
+      const transitionState = pointerTransitionStateRef.current[key];
+      const wasExiting = transitionState.exiting;
+      const pendingExitTimer = pointerExitTimerByKeyRef.current[key];
+
+      if (!el) {
+        pointerPlan.nextVisible[key] = false;
+        delete pointerPlan.nextMeta[key];
+        continue;
+      }
+
+      if (decision.shouldHide) {
+        clearPointerEnterAnimation(el);
+        setPointerAnimationDuration(el, pointerEnterDurationMs);
+        if (beginPointerExit(pointerTransitionStateRef.current, key)) {
+          markPointerExiting(el);
+          const timer = window.setTimeout(() => {
+            const isCurrentRun = isAnimationRunCurrent(
+              animationRunGuard,
+              animationRunId,
+            );
+            completePointerExit(pointerTransitionStateRef.current, key);
+            delete pointerExitTimerByKeyRef.current[key];
+            bumpPointerTransitionRevision();
+            if (!isCurrentRun) {
+              return;
+            }
+          }, pointerEnterDurationMs);
+          pointerExitTimerByKeyRef.current[key] = timer;
+        }
+        continue;
+      }
+
+      if (typeof pendingExitTimer === "number") {
+        window.clearTimeout(pendingExitTimer);
+        delete pointerExitTimerByKeyRef.current[key];
+      }
+      const hadExitingClassBefore = el.classList.contains(POINTER_EXIT_CLASS);
+      showPointer(pointerTransitionStateRef.current, key);
+      if (wasExiting || hadExitingClassBefore) {
+        clearPointerExiting(el);
+      }
+
+      if (decision.targetCenter !== undefined) {
+        el.style.left = `${decision.targetCenter}px`;
+      }
+
+      if (decision.shouldFlip && decision.deltaX !== undefined) {
+        primePointerMoveFlip(el, decision.deltaX);
+        el.getBoundingClientRect();
+        flipEls.push(el);
+      } else {
+        settlePointerMoveAtRest(el);
+      }
+
+      if (decision.shouldEnter) {
+        enterEls.push(el);
+      }
+    }
 
     const playPointerEnter = () => {
       for (const el of enterEls) {
-        el.style.setProperty(
-          "--viz-pointer-enter-duration",
-          `${pointerEnterDurationMs}ms`
-        );
-        el.classList.remove("viz-pointer--entering");
-        void el.offsetHeight;
-        el.classList.add("viz-pointer--entering");
+        applyPointerEnterAnimation(el, pointerEnterDurationMs);
         const timer = window.setTimeout(() => {
-          el.classList.remove("viz-pointer--entering");
-        }, pointerEnterDurationMs + 120);
+          if (
+            !isAnimationRunCurrent(animationRunGuard, animationRunId)
+          ) {
+            return;
+          }
+          clearPointerEnterAnimation(el);
+        }, getPointerEnterCleanupDelayMs(pointerEnterDurationMs));
         pointerEnterTimersRef.current.push(timer);
       }
     };
@@ -642,41 +628,36 @@ export function AnimationPanel({
       hasEnter: enterEls.length > 0,
       scheduleFrame: requestAnimationFrame,
       startFlip: () => {
+        if (
+          !isAnimationRunCurrent(animationRunGuard, animationRunId)
+        ) {
+          pointerFlipRafRef.current = null;
+          return;
+        }
         for (const el of flipEls) {
-          el.style.transition = `transform ${duration}ms ${ease}`;
-          el.style.transform = "translate(-50%, 0)";
+          playPointerMoveFlip(el, duration);
         }
         pointerFlipRafRef.current = null;
       },
-      playEnter: playPointerEnter,
+      playEnter: () => {
+        if (
+          !isAnimationRunCurrent(animationRunGuard, animationRunId)
+        ) {
+          return;
+        }
+        playPointerEnter();
+      },
     });
 
-    const nextPtr: {
-      i?: { idx: number; center: number };
-      j?: { idx: number; center: number };
-      jMinus1?: { idx: number; center: number };
-      min?: { idx: number; center: number };
-    } = {};
-    if (typeof pointers.i === "number" && iCenter !== undefined) {
-      nextPtr.i = { idx: pointers.i, center: iCenter };
-    }
-    if (typeof pointers.j === "number" && jCenter !== undefined) {
-      nextPtr.j = { idx: pointers.j, center: jCenter };
-    }
-    if (typeof pointers.jMinus1 === "number" && jm1Center !== undefined) {
-      nextPtr.jMinus1 = { idx: pointers.jMinus1, center: jm1Center };
-    }
-    if (typeof minIdx === "number" && minCenter !== undefined) {
-      nextPtr.min = { idx: minIdx, center: minCenter };
-    }
-    prevPointerMetaRef.current = nextPtr;
-    prevPointerVisibleRef.current = nextVisible;
+    prevPointerMetaRef.current = pointerPlan.nextMeta;
+    prevPointerVisibleRef.current = pointerPlan.nextVisible;
 
     prevValuesRef.current = [...viz.values];
     prevRectsRef.current = currentRects;
     prevBarsRef.current = bars;
 
     return () => {
+      beginAnimationRun(animationRunGuard);
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
@@ -919,7 +900,7 @@ export function AnimationPanel({
                             ref={pointerIRef}
                             className={`viz-pointer viz-pointer--i viz-pointer--overlay${
                               pointerTransitionStateRef.current.i.exiting
-                                ? " viz-pointer--exiting"
+                                ? ` ${POINTER_EXIT_CLASS}`
                                 : ""
                             }`}
                           >
@@ -930,7 +911,7 @@ export function AnimationPanel({
                         pointerTransitionStateRef.current.j.mounted ? (
                           <span
                             ref={pointerJRef}
-                            className={`viz-pointer viz-pointer--j viz-pointer--overlay ${pointerToneClass(
+                            className={`viz-pointer viz-pointer--j viz-pointer--overlay ${pointerToneClassForTone(
                               pointers.j === undefined
                                 ? "neutral"
                                 : barToneForIndex(
@@ -939,10 +920,10 @@ export function AnimationPanel({
                                     sortedExclusiveEnd
                                   )
                             )}${
-                              isSelectionJInactive ? " viz-pointer--inactive" : ""
+                              isJInactive ? " viz-pointer--inactive" : ""
                             }${
                               pointerTransitionStateRef.current.j.exiting
-                                ? " viz-pointer--exiting"
+                                ? ` ${POINTER_EXIT_CLASS}`
                                 : ""
                             }`}
                           >
@@ -953,7 +934,7 @@ export function AnimationPanel({
                         pointerTransitionStateRef.current.jMinus1.mounted ? (
                           <span
                             ref={pointerJMinus1Ref}
-                            className={`viz-pointer viz-pointer--jminus1 viz-pointer--overlay ${pointerToneClass(
+                            className={`viz-pointer viz-pointer--jminus1 viz-pointer--overlay ${pointerToneClassForTone(
                               pointers.jMinus1 === undefined
                                 ? "neutral"
                                 : barToneForIndex(
@@ -963,7 +944,7 @@ export function AnimationPanel({
                                   )
                             )}${
                               pointerTransitionStateRef.current.jMinus1.exiting
-                                ? " viz-pointer--exiting"
+                                ? ` ${POINTER_EXIT_CLASS}`
                                 : ""
                             }`}
                           >
@@ -975,9 +956,9 @@ export function AnimationPanel({
                         pointerTransitionStateRef.current.min.mounted ? (
                           <span
                             ref={pointerMinRef}
-                            className={`viz-pointer viz-pointer--min viz-pointer--overlay viz-pointer--toneMin${
+                            className={`viz-pointer viz-pointer--min viz-pointer--overlay ${pointerToneClassForTone("min")}${
                               pointerTransitionStateRef.current.min.exiting
-                                ? " viz-pointer--exiting"
+                                ? ` ${POINTER_EXIT_CLASS}`
                                 : ""
                             }`}
                           >
@@ -987,13 +968,9 @@ export function AnimationPanel({
                         </div>
                         {bars.map((bar, idx) => {
                         const n = bar.value;
-                        const h = `${Math.round((n / maxVal) * 100)}%`;
+                        const h = getBarHeightPercent(n, maxVal);
                         const tone = barToneForIndex(idx, viz, sortedExclusiveEnd);
-                        let cls = "viz-bar";
-                        if (tone === "min") cls += " viz-bar--min";
-                        else if (tone === "key") cls += " viz-bar--key";
-                        else if (tone === "hl") cls += " viz-bar--hl";
-                        else if (tone === "sorted") cls += " viz-bar--sorted";
+                        const cls = barClassNameForTone("viz-bar", tone);
 
                         return (
                           <div
@@ -1052,7 +1029,7 @@ export function AnimationPanel({
                 </p>
                 <div className="viz-bars" aria-hidden>
                   {step.values.map((n, idx) => {
-                    const h = `${Math.round((n / step.maxVal) * 100)}%`;
+                    const h = getBarHeightPercent(n, step.maxVal);
                     return (
                       <div key={idx} className="viz-bar-col">
                         <div className="viz-pointers" aria-hidden />

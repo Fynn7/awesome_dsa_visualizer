@@ -836,25 +836,31 @@ export const selectionSortTrace: MockStep[] = [
   },
 ];
 
-export type AlgorithmId = "insertion" | "selection";
-
-export function getAlgorithmDemo(id: AlgorithmId): {
+export type AlgorithmDemo = {
   source: string;
   trace: MockStep[];
   loopPulseRules: LoopPulseRestartRule[];
-} {
-  switch (id) {
-    case "insertion":
-      return {
-        source: INSERTION_SORT_SOURCE,
-        trace: insertionSortTrace,
-        loopPulseRules: insertionSortLoopPulseRules,
-      };
-    case "selection":
-      return {
-        source: SELECTION_SORT_SOURCE,
-        trace: selectionSortTrace,
-        loopPulseRules: selectionSortLoopPulseRules,
-      };
-  }
+};
+
+export const ALGORITHM_DEMOS = {
+  insertion: {
+    source: INSERTION_SORT_SOURCE,
+    trace: insertionSortTrace,
+    loopPulseRules: insertionSortLoopPulseRules,
+  },
+  selection: {
+    source: SELECTION_SORT_SOURCE,
+    trace: selectionSortTrace,
+    loopPulseRules: selectionSortLoopPulseRules,
+  },
+} satisfies Record<string, AlgorithmDemo>;
+
+export type AlgorithmId = keyof typeof ALGORITHM_DEMOS;
+
+export function getAlgorithmDemo(id: AlgorithmId): AlgorithmDemo {
+  return ALGORITHM_DEMOS[id];
+}
+
+export function getAlgorithmIds(): AlgorithmId[] {
+  return Object.keys(ALGORITHM_DEMOS) as AlgorithmId[];
 }
