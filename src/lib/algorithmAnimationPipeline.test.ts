@@ -173,7 +173,7 @@ describe("algorithm animation shared pipeline", () => {
         enterDuration
       );
 
-      const envelope = getAlgorithmEnvelopeTraces(id, trace);
+      const envelope = getAlgorithmEnvelopeTraces(id, trace, getAlgorithmDemo);
       expect(envelope.length).toBeGreaterThan(0);
       expect(pointerDecisionCount).toBeGreaterThan(0);
       expect(barToneCheckCount).toBeGreaterThan(0);

@@ -1,5 +1,6 @@
 import { AppWindow, Maximize2 } from "lucide-react";
 import {
+  getAlgorithmDemo,
   type AlgorithmId,
   type MockStep,
   type MockViz,
@@ -264,7 +265,7 @@ export function AnimationPanel({
   const showMinRow =
     typeof viz.minIndex === "number" && viz.minIndex >= 0;
   const envelopeTraces = useMemo(
-    () => getAlgorithmEnvelopeTraces(algorithmId, trace),
+    () => getAlgorithmEnvelopeTraces(algorithmId, trace, getAlgorithmDemo),
     [algorithmId, trace]
   );
   const traceEnvelopeSteps = useMemo(() => {
@@ -564,14 +565,16 @@ export function AnimationPanel({
         if (beginPointerExit(pointerTransitionStateRef.current, key)) {
           markPointerExiting(el);
           const timer = window.setTimeout(() => {
-            if (
-              !isAnimationRunCurrent(animationRunGuard, animationRunId)
-            ) {
-              return;
-            }
+            const isCurrentRun = isAnimationRunCurrent(
+              animationRunGuard,
+              animationRunId,
+            );
             completePointerExit(pointerTransitionStateRef.current, key);
             delete pointerExitTimerByKeyRef.current[key];
             bumpPointerTransitionRevision();
+            if (!isCurrentRun) {
+              return;
+            }
           }, pointerEnterDurationMs);
           pointerExitTimerByKeyRef.current[key] = timer;
         }

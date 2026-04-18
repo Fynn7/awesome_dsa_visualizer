@@ -5,7 +5,7 @@ import {
   getAlgorithmSpec,
   getAlgorithmSpecs,
 } from "./algorithmSpecs";
-import { getAlgorithmIds } from "./mockTrace";
+import { getAlgorithmDemo, getAlgorithmIds } from "./mockTrace";
 
 describe("algorithmSpecs", () => {
   it("covers every algorithm id from the demo registry", () => {
@@ -56,8 +56,8 @@ describe("algorithmSpecs", () => {
   });
 
   it("uses the shared bar-sort envelope traces", () => {
-    const insertionEnvelope = getAlgorithmEnvelopeTraces("insertion", []);
-    const selectionEnvelope = getAlgorithmEnvelopeTraces("selection", []);
+    const insertionEnvelope = getAlgorithmEnvelopeTraces("insertion", [], getAlgorithmDemo);
+    const selectionEnvelope = getAlgorithmEnvelopeTraces("selection", [], getAlgorithmDemo);
 
     expect(insertionEnvelope.map((entry) => entry.id)).toEqual([
       "insertion",
