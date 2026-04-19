@@ -162,7 +162,8 @@ function buildDsuGraphAriaLabel(viz: MockDsuGraphViz): string {
       ? `Current union edge ${viz.activeEdge.from} to ${viz.activeEdge.to}. `
       : "";
   const idPart = viz.nodes.map((n) => `id[${n.id}]=${n.group}`).join(", ");
-  return `${viz.caption}. ${active}${idPart}. ${viz.nodes.length} nodes, ${viz.edges.length} edges.`;
+  const captionPlain = stripCaptionBackticks(viz.caption);
+  return `${captionPlain}. ${active}${idPart}. ${viz.nodes.length} nodes, ${viz.edges.length} edges.`;
 }
 
 function DsuNodeSlot({

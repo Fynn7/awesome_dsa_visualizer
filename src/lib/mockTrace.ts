@@ -168,12 +168,6 @@ selection_sort(data)
 export const QUICK_FIND_SOURCE = `from DSA import intArray, stdReadInt, stdIsEmpty
 
 class QuickFindUF:
-    """
-    Run with
-    \`\`\`ps
-    cmd /c "python .\\src_py\\uebung1.py < .\\src_py\\\\tinyUF.txt"
-    \`\`\`
-    """
     def __init__(self, n):
         self.id = intArray(n)
         for i in range(len(self.id)):
@@ -984,6 +978,22 @@ function parseUnionOperation(op: string): { p: number; q: number } {
   return { p: Number(matched[1]), q: Number(matched[2]) };
 }
 
+/** `union(p,q)` wrapped in backticks for caption inline-code segments (see `splitCaptionByBackticks`). */
+function quickFindCaptionUnion(op: string): string {
+  return `\`${op}\``;
+}
+
+/** 1-based line index of `def union(self, p, q):` inside {@link QUICK_FIND_SOURCE}. */
+function findQuickFindUnionDefOneBasedLine(): number {
+  const lines = QUICK_FIND_SOURCE.split("\n");
+  for (let i = 0; i < lines.length; i += 1) {
+    if (/^\s*def union\(self,\s*p,\s*q\)\s*:/.test(lines[i]!)) {
+      return i + 1;
+    }
+  }
+  throw new Error("QUICK_FIND_SOURCE: union method definition line not found");
+}
+
 function buildQuickFindTrace(): MockStep[] {
   const trace: MockStep[] = [];
   const edges: DsuGraphEdge[] = [];
@@ -1058,28 +1068,28 @@ function buildQuickFindTrace(): MockStep[] {
 
     pushStep({
       line: 19,
-      caption: `${unionStep.op}: enter union(p, q)`,
+      caption: `${quickFindCaptionUnion(unionStep.op)}: enter union(p, q)`,
       highlightIndices: [p, q],
     });
 
     accesses += 1;
     pushStep({
       line: 20,
-      caption: `${unionStep.op}: read pid = id[p]`,
+      caption: `${quickFindCaptionUnion(unionStep.op)}: read pid = id[p]`,
       highlightIndices: [p],
     });
 
     accesses += 1;
     pushStep({
       line: 21,
-      caption: `${unionStep.op}: read qid = id[q]`,
+      caption: `${quickFindCaptionUnion(unionStep.op)}: read qid = id[q]`,
       highlightIndices: [q],
     });
 
     for (let i = 0; i < running.length; i += 1) {
       pushStep({
         line: 22,
-        caption: `${unionStep.op}: scan i = ${i}`,
+        caption: `${quickFindCaptionUnion(unionStep.op)}: scan i = ${i}`,
         highlightIndices: [i],
         i,
       });
@@ -1092,8 +1102,8 @@ function buildQuickFindTrace(): MockStep[] {
       pushStep({
         line: 23,
         caption: matches
-          ? `${unionStep.op}: id[${i}] == pid (match)`
-          : `${unionStep.op}: id[${i}] != pid (skip)`,
+          ? `${quickFindCaptionUnion(unionStep.op)}: id[${i}] == pid (match)`
+          : `${quickFindCaptionUnion(unionStep.op)}: id[${i}] != pid (skip)`,
         highlightIndices: matches ? [i, p, q] : [i],
         i,
       });
@@ -1103,7 +1113,7 @@ function buildQuickFindTrace(): MockStep[] {
         accesses += 1;
         pushStep({
           line: 24,
-          caption: `${unionStep.op}: set id[${i}] = qid`,
+          caption: `${quickFindCaptionUnion(unionStep.op)}: set id[${i}] = qid`,
           highlightIndices: [i, q],
           i,
         });
@@ -1138,7 +1148,7 @@ function buildQuickFindTrace(): MockStep[] {
       ],
       viz: {
         kind: "dsuGraph",
-        caption: `${unionStep.op} complete -> ${accesses} array accesses`,
+        caption: `${quickFindCaptionUnion(unionStep.op)} complete -> ${accesses} array accesses`,
         values: [...running],
         highlightIndices: [p, q],
         nodes: buildDsuNodes(running),
@@ -1178,7 +1188,110 @@ function buildQuickFindTrace(): MockStep[] {
   return trace;
 }
 
-export const quickFindTrace: MockStep[] = buildQuickFindTrace();
+/** Line-by-line trace inside `QuickFindUF.union` (one animation step per source line). */
+export const quickFindFullTrace: MockStep[] = buildQuickFindTrace();
+
+/**
+ * One animation step per `union()` (plus init and Finished). Console logs are union summaries only.
+ * Code highlight uses the `def union` line for each union step.
+ */
+function buildQuickFindUnionTrace(): MockStep[] {
+  const trace: MockStep[] = [];
+  const edges: DsuGraphEdge[] = [];
+  const initial = QUICK_FIND_STEP_INPUTS[0]!.before;
+  const unionDefLine = findQuickFindUnionDefOneBasedLine();
+
+  trace.push({
+    line: 1,
+    variables: {
+      operation: "init",
+      id_before: formatIdArray(initial),
+      id_after: formatIdArray(initial),
+      array_accesses: "0",
+    },
+    consoleAppend: [
+      "Exercise 1: Analysis of quick-find",
+      "Initial id[]: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]",
+    ],
+    viz: {
+      kind: "dsuGraph",
+      caption: "Initialize id[] = [0..9]",
+      values: initial,
+      highlightIndices: [],
+      nodes: buildDsuNodes(initial),
+      edges: [...edges],
+    },
+  });
+
+  for (const unionStep of QUICK_FIND_STEP_INPUTS) {
+    const { p, q } = parseUnionOperation(unionStep.op);
+    const idBefore = [...unionStep.before];
+    const running = [...unionStep.after];
+    const pid = idBefore[p]!;
+    const qid = idBefore[q]!;
+    const accesses = unionStep.accesses;
+    const unionEdges = [...edges, unionStep.edge];
+
+    trace.push({
+      line: unionDefLine,
+      variables: {
+        operation: unionStep.op,
+        p: String(p),
+        q: String(q),
+        pid: String(pid),
+        qid: String(qid),
+        i: "--",
+        id_before: formatIdArray(idBefore),
+        id_after: formatIdArray(running),
+        array_accesses: String(accesses),
+      },
+      consoleAppend: [
+        `${unionStep.op}: accesses=${accesses}`,
+        `id[] -> ${formatIdArray(running)}`,
+      ],
+      viz: {
+        kind: "dsuGraph",
+        caption: quickFindCaptionUnion(unionStep.op),
+        values: [...running],
+        highlightIndices: [p, q],
+        nodes: buildDsuNodes(running),
+        edges: unionEdges,
+        activeEdge: unionStep.edge,
+      },
+    });
+
+    edges.push(unionStep.edge);
+  }
+
+  const finalValues = QUICK_FIND_STEP_INPUTS[QUICK_FIND_STEP_INPUTS.length - 1]!.after;
+  trace.push({
+    line: 25,
+    variables: {
+      operation: "finished",
+      p: "--",
+      q: "--",
+      pid: "--",
+      qid: "--",
+      i: "--",
+      id_before: formatIdArray(finalValues),
+      id_after: formatIdArray(finalValues),
+      array_accesses: "0",
+    },
+    viz: {
+      kind: "dsuGraph",
+      caption: "Finished",
+      values: [...finalValues],
+      highlightIndices: [],
+      nodes: buildDsuNodes(finalValues),
+      edges: [...edges],
+      uniformEdgeColor: true,
+    },
+  });
+
+  return trace;
+}
+
+export const quickFindUnionTrace: MockStep[] = buildQuickFindUnionTrace();
 
 export type AlgorithmDemo = {
   source: string;
@@ -1199,7 +1312,12 @@ export const ALGORITHM_DEMOS = {
   },
   "quick-find": {
     source: QUICK_FIND_SOURCE,
-    trace: quickFindTrace,
+    trace: quickFindUnionTrace,
+    loopPulseRules: [],
+  },
+  "quick-find-full": {
+    source: QUICK_FIND_SOURCE,
+    trace: quickFindFullTrace,
     loopPulseRules: [],
   },
 } satisfies Record<string, AlgorithmDemo>;

@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import { getAlgorithmDemo, getAlgorithmIds } from "./mockTrace";
 
-describe("quick find exercise demo", () => {
+describe("quick find - full exercise demo", () => {
   it("is registered in algorithm ids", () => {
-    expect(getAlgorithmIds()).toContain("quick-find");
+    expect(getAlgorithmIds()).toContain("quick-find-full");
   });
 
   it("uses dsuGraph sub-steps with line progression and running accesses", () => {
-    const { trace } = getAlgorithmDemo("quick-find");
+    const { trace } = getAlgorithmDemo("quick-find-full");
     expect(trace.length).toBeGreaterThan(80);
 
     const first = trace[0]!;
@@ -26,7 +26,7 @@ describe("quick find exercise demo", () => {
   });
 
   it("draws the new union edge only after id[i] == pid matches (not during prior scans)", () => {
-    const { trace } = getAlgorithmDemo("quick-find");
+    const { trace } = getAlgorithmDemo("quick-find-full");
     const op = "union(9,0)";
     const enter = trace.find(
       (s) => s.variables.operation === op && s.line === 19
@@ -60,7 +60,7 @@ describe("quick find exercise demo", () => {
   });
 
   it("covers multi-line execution inside union", () => {
-    const { trace } = getAlgorithmDemo("quick-find");
+    const { trace } = getAlgorithmDemo("quick-find-full");
     const unionSteps = trace.filter(
       (step) => step.variables.operation === "union(9,0)"
     );
@@ -74,7 +74,7 @@ describe("quick find exercise demo", () => {
   });
 
   it("matches official final accesses and id state per union", () => {
-    const { trace } = getAlgorithmDemo("quick-find");
+    const { trace } = getAlgorithmDemo("quick-find-full");
     const completed = trace.filter((step) =>
       step.viz.caption.includes("complete ->")
     );
@@ -92,7 +92,7 @@ describe("quick find exercise demo", () => {
   });
 
   it("adds a final Finished frame with uniform edge color", () => {
-    const { trace } = getAlgorithmDemo("quick-find");
+    const { trace } = getAlgorithmDemo("quick-find-full");
     const finalStep = trace[trace.length - 1]!;
     expect(finalStep.viz.kind).toBe("dsuGraph");
     if (finalStep.viz.kind === "dsuGraph") {

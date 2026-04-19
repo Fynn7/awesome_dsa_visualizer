@@ -68,7 +68,20 @@ const ALGORITHM_SPECS: Record<AlgorithmId, AlgorithmSpec> = {
   "quick-find": {
     id: "quick-find",
     title: "Quick Find",
-    searchBlob: "exercise 1 quick find union-find dsu id array accesses",
+    searchBlob:
+      "exercise 1 quick find union-find dsu id array accesses union steps per union coarse",
+    visual: {
+      inferJMinus1FromHighlights: false,
+      getSortedExclusiveEnd: () => undefined,
+      isJInactivePhase: noJInactivePhase,
+      envelopeTraceIds: SINGLE_TRACE_ENVELOPE_IDS,
+    },
+  },
+  "quick-find-full": {
+    id: "quick-find-full",
+    title: "Quick Find - Full",
+    searchBlob:
+      "exercise 1 quick find full line by line union-find dsu id array accesses fine grained",
     visual: {
       inferJMinus1FromHighlights: false,
       getSortedExclusiveEnd: () => undefined,
