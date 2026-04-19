@@ -1150,6 +1150,23 @@ button {
   pointer-events: none;
 }
 
+/*
+ * Opaque underlay disk: keeps semi-transparent node fills, while preventing
+ * edge strokes from visually bleeding through the node interior.
+ */
+.viz-dsu-node-slot::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 2.44rem;
+  height: 2.44rem;
+  margin-left: -1.22rem;
+  margin-top: -1.22rem;
+  border-radius: 999px;
+  background: var(--bg-app);
+}
+
 .viz-dsu-edges {
   width: 100%;
   height: 100%;
@@ -1175,6 +1192,7 @@ button {
   position: absolute;
   left: 0;
   top: 0;
+  z-index: 1;
   width: 2.4rem;
   height: 2.4rem;
   margin-left: -1.2rem;
@@ -1190,6 +1208,17 @@ button {
   background: #0b2a29;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18) inset;
 }
+
+.viz-dsu-node--group-0 { background: rgba(13, 75, 69, 0.60); }
+.viz-dsu-node--group-1 { background: rgba(20, 90, 59, 0.60); }
+.viz-dsu-node--group-2 { background: rgba(79, 95, 24, 0.60); }
+.viz-dsu-node--group-3 { background: rgba(22, 96, 103, 0.60); }
+.viz-dsu-node--group-4 { background: rgba(26, 84, 120, 0.60); }
+.viz-dsu-node--group-5 { background: rgba(47, 78, 163, 0.60); }
+.viz-dsu-node--group-6 { background: rgba(90, 64, 152, 0.60); }
+.viz-dsu-node--group-7 { background: rgba(122, 56, 110, 0.60); }
+.viz-dsu-node--group-8 { background: rgba(123, 62, 66, 0.60); }
+.viz-dsu-node--group-9 { background: rgba(109, 77, 34, 0.60); }
 
 .viz-dsu-node-idval {
   position: absolute;

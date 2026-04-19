@@ -166,12 +166,20 @@ function buildDsuGraphAriaLabel(viz: MockDsuGraphViz): string {
   return `${captionPlain}. ${active}${idPart}. ${viz.nodes.length} nodes, ${viz.edges.length} edges.`;
 }
 
+function dsuGroupClass(group: number): string {
+  const paletteSlots = 10;
+  const normalized = ((group % paletteSlots) + paletteSlots) % paletteSlots;
+  return `viz-dsu-node--group-${normalized}`;
+}
+
 function DsuNodeSlot({
   node,
   active,
+  groupClass,
 }: {
   node: DsuGraphNode;
   active: boolean;
+  groupClass: string;
 }) {
   const pos = getDsuNodePosition(node.id);
   return (
@@ -180,7 +188,7 @@ function DsuNodeSlot({
       style={{ left: `${pos.x}px`, top: `${pos.y}px` }}
     >
       <div
-        className={`viz-dsu-node${active ? " viz-dsu-node--active" : ""}`}
+        className={`viz-dsu-node ${groupClass}${active ? " viz-dsu-node--active" : ""}`}
       >
         {node.id}
       </div>
@@ -1012,6 +1020,7 @@ export function AnimationPanel({
                               key={node.id}
                               node={node}
                               active={dsuViz.highlightIndices.includes(node.id)}
+                              groupClass={dsuGroupClass(node.group)}
                             />
                           ))}
                         </>
@@ -1195,7 +1204,12 @@ export function AnimationPanel({
                       })}
                     </svg>
                     {step.nodes.map((node) => (
-                      <DsuNodeSlot key={node.id} node={node} active={false} />
+                      <DsuNodeSlot
+                        key={node.id}
+                        node={node}
+                        active={false}
+                        groupClass={dsuGroupClass(node.group)}
+                      />
                     ))}
                   </div>
                 ) : (
