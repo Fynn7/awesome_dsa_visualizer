@@ -1,6 +1,7 @@
 # DSA Visualizer: Current UI Design Draft (Concept Level)
 
 Entry flow and routing behavior are maintained in [`README.md`](../README.md) as the single source of truth. This document only summarizes UI structure and visual rules.
+Code-line anchoring policy (including no hardcoded trace line numbers) is maintained in [`line-anchor-spec.md`](./line-anchor-spec.md); this document references that spec instead of duplicating it.
 
 ## 1. Product Context and Language
 
@@ -119,6 +120,7 @@ Each panel uses a consistent card structure:
   - Presentation shortcuts mirror UI help: Next step supports `Enter` / `→` / `Left click`; Previous step supports `←` / `Right click`.
   - Text in the animation area should not be user-selectable.
   - Sorting visuals use bar heights proportional to values.
+  - DSU/union-find graph specifics (including pre-union cue frames, **Quick Find** vs **Quick Find - Full Trace** stepping, highlighting, and `array_accesses`) are maintained in [`README.md`](../README.md) as the authoritative behavior spec.
   - Overlaid pointers (`i`, `j`, `j-1`, `min`) share horizontal transition timing with bar FLIP movement and support first-appearance enter animation.
   - **Movement policy (authoritative)**: all pointer/node position changes in `AnimationPanel` must animate from the last painted on-screen position to the new target position (FLIP from visual origin to destination), never teleport then animate.
   - **Implementation single source (authoritative)**: pointer movement animation styles are centralized in [`src/lib/pointerMoveAnimation.ts`](../src/lib/pointerMoveAnimation.ts); pointer enter/exit lifecycle timing and class toggles are centralized in [`src/lib/pointerLifecycleAnimation.ts`](../src/lib/pointerLifecycleAnimation.ts).

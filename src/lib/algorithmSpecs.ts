@@ -2,6 +2,7 @@ import {
   type AlgorithmId,
   type MockStep,
 } from "./mockTrace";
+import { resolveAlgorithmAnchorLine } from "./algorithmLineAnchors";
 import { selectionSortedExclusiveEnd } from "./selectionSortedPrefix";
 import { isSelectionJInactivePhase } from "./selectionPointerPhase";
 
@@ -34,6 +35,7 @@ export type AlgorithmSpec = {
 
 const noJInactivePhase = () => false;
 const BAR_SORT_PAIR_ENVELOPE_IDS = ["insertion", "selection"] as const;
+const SINGLE_TRACE_ENVELOPE_IDS = [] as const;
 
 const ALGORITHM_SPECS: Record<AlgorithmId, AlgorithmSpec> = {
   insertion: {
@@ -43,7 +45,9 @@ const ALGORITHM_SPECS: Record<AlgorithmId, AlgorithmSpec> = {
     visual: {
       inferJMinus1FromHighlights: true,
       getSortedExclusiveEnd: ({ stepLine, valuesLength }) => {
-        return stepLine === 18 ? valuesLength : undefined;
+        return stepLine === resolveAlgorithmAnchorLine("insertion", "callSort")
+          ? valuesLength
+          : undefined;
       },
       isJInactivePhase: noJInactivePhase,
       envelopeTraceIds: BAR_SORT_PAIR_ENVELOPE_IDS,
@@ -62,6 +66,54 @@ const ALGORITHM_SPECS: Record<AlgorithmId, AlgorithmSpec> = {
         return isSelectionJInactivePhase("selection", stepLine, jIndex);
       },
       envelopeTraceIds: BAR_SORT_PAIR_ENVELOPE_IDS,
+    },
+  },
+  "quick-find": {
+    id: "quick-find",
+    title: "Quick Find",
+    searchBlob:
+      "exercise 1 quick find union-find dsu id array accesses union steps per union coarse",
+    visual: {
+      inferJMinus1FromHighlights: false,
+      getSortedExclusiveEnd: () => undefined,
+      isJInactivePhase: noJInactivePhase,
+      envelopeTraceIds: SINGLE_TRACE_ENVELOPE_IDS,
+    },
+  },
+  "quick-find-full": {
+    id: "quick-find-full",
+    title: "Quick Find - Full Trace",
+    searchBlob:
+      "exercise 1 quick find full line by line union-find dsu id array accesses fine grained",
+    visual: {
+      inferJMinus1FromHighlights: false,
+      getSortedExclusiveEnd: () => undefined,
+      isJInactivePhase: noJInactivePhase,
+      envelopeTraceIds: SINGLE_TRACE_ENVELOPE_IDS,
+    },
+  },
+  "quick-union": {
+    id: "quick-union",
+    title: "Quick Union",
+    searchBlob:
+      "exercise 2 quick union union-find dsu id array accesses union steps per union tree structure coarse",
+    visual: {
+      inferJMinus1FromHighlights: false,
+      getSortedExclusiveEnd: () => undefined,
+      isJInactivePhase: noJInactivePhase,
+      envelopeTraceIds: SINGLE_TRACE_ENVELOPE_IDS,
+    },
+  },
+  "quick-union-full": {
+    id: "quick-union-full",
+    title: "Quick Union - Full Trace",
+    searchBlob:
+      "exercise 2 quick union full line by line union-find dsu id array accesses tree structure fine grained",
+    visual: {
+      inferJMinus1FromHighlights: false,
+      getSortedExclusiveEnd: () => undefined,
+      isJInactivePhase: noJInactivePhase,
+      envelopeTraceIds: SINGLE_TRACE_ENVELOPE_IDS,
     },
   },
 };

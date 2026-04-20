@@ -32,6 +32,8 @@ export type ExecutionState = {
    * (capped); if false, only shrink-to-fit (max scale 1).
    */
   animationFitAllowUpscale: boolean;
+  /** Quick Find: show/hide DSU connection lines in animation panel. */
+  displayConnections: boolean;
   /**
    * True after the Animation panel was auto-hidden because its viewport was
    * too small; cleared when the user toggles the Animation chip.
@@ -56,7 +58,9 @@ function recomputeConsole(trace: MockStep[], throughIndex: number): string[] {
   return lines;
 }
 
-export function createInitialState(): ExecutionState {
+export function createInitialState(
+  overrides?: Partial<Pick<ExecutionState, "displayConnections">>
+): ExecutionState {
   const demo = getAlgorithmDemo("insertion");
   return {
     algorithmId: "insertion",
@@ -74,6 +78,7 @@ export function createInitialState(): ExecutionState {
     showArrayIndices: true,
     enableAnimationScroll: false,
     animationFitAllowUpscale: true,
+    displayConnections: overrides?.displayConnections ?? false,
     animationAutoCollapsed: false,
   };
 }
@@ -92,6 +97,7 @@ export type ExecutionAction =
   | { type: "SET_SHOW_ARRAY_INDICES"; value: boolean }
   | { type: "SET_ENABLE_ANIMATION_SCROLL"; value: boolean }
   | { type: "SET_ANIMATION_FIT_ALLOW_UPSCALE"; value: boolean }
+  | { type: "SET_DISPLAY_CONNECTIONS"; value: boolean }
   | { type: "AUTO_CLOSE_ANIMATION_PANEL" }
   | { type: "SET_ALGORITHM"; algorithmId: AlgorithmId };
 
@@ -221,6 +227,8 @@ export function executionReducer(
       return { ...state, enableAnimationScroll: action.value };
     case "SET_ANIMATION_FIT_ALLOW_UPSCALE":
       return { ...state, animationFitAllowUpscale: action.value };
+    case "SET_DISPLAY_CONNECTIONS":
+      return { ...state, displayConnections: action.value };
     default:
       return state;
   }

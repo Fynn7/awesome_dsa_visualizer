@@ -6,16 +6,19 @@ import {
   insertionSortLoopPulseRules,
   insertionSortTrace,
 } from "./mockTrace";
+import { resolveAlgorithmAnchorLine } from "./algorithmLineAnchors";
 import { barToneForIndex } from "./vizBarTone";
 
 describe("insertion sort demo (DSA swap + intArray)", () => {
-  it("keeps INSERTION_SORT_SOURCE line numbers aligned with trace (data on line 18)", () => {
+  it("keeps INSERTION_SORT_SOURCE anchors aligned with trace", () => {
     const lines = INSERTION_SORT_SOURCE.split("\n");
     expect(lines[0]).toMatch(/^from DSA import intArray, exch$/);
-    expect(lines[12]).toBe("data = intArray(4)");
-    expect(lines[17]).toBe("insertion_sort(data)");
-    expect(lines[18]).toBe("");
-    expect(lines.length).toBe(19);
+    expect(lines[resolveAlgorithmAnchorLine("insertion", "dataAlloc") - 1]).toBe(
+      "data = intArray(4)"
+    );
+    expect(lines[resolveAlgorithmAnchorLine("insertion", "callSort") - 1]).toBe(
+      "insertion_sort(data)"
+    );
   });
 
   it("exercises loop pulse rules on if/loop transitions", () => {
@@ -80,17 +83,20 @@ describe("insertion sort demo (DSA swap + intArray)", () => {
     });
   });
 
-  it("ends with sorted array and matching line 18", () => {
+  it("ends with sorted array and matching completion anchor", () => {
     const last = insertionSortTrace[insertionSortTrace.length - 1]!;
-    expect(last.line).toBe(18);
+    expect(last.line).toBe(resolveAlgorithmAnchorLine("insertion", "callSort"));
     expect(last.viz.values).toEqual([2, 3, 5, 7]);
     expect(last.viz.highlightIndices).toEqual([]);
   });
 
-  it("completion frame uses sorted bar tone for every index (matches line-18 exclusive end)", () => {
+  it("completion frame uses sorted bar tone for every index", () => {
     const last = insertionSortTrace[insertionSortTrace.length - 1]!;
     const len = last.viz.values.length;
-    const end = last.line === 18 ? len : undefined;
+    const end =
+      last.line === resolveAlgorithmAnchorLine("insertion", "callSort")
+        ? len
+        : undefined;
     expect(end).toBe(len);
     for (let idx = 0; idx < len; idx += 1) {
       expect(barToneForIndex(idx, last.viz, end)).toBe("sorted");

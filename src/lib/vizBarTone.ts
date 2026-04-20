@@ -1,4 +1,4 @@
-import type { MockViz } from "./mockTrace";
+import type { MockVizModel } from "./mockTrace";
 
 /**
  * Bar emphasis in AnimationPanel (min > key/hl > sorted > neutral).
@@ -11,7 +11,7 @@ export type BarTone = "key" | "hl" | "min" | "neutral" | "sorted";
 
 export function barToneForIndex(
   idx: number,
-  viz: MockViz,
+  viz: Pick<MockVizModel, "highlightIndices"> & { minIndex?: number },
   sortedExclusiveEnd?: number
 ): BarTone {
   const minIdx = viz.minIndex ?? -1;

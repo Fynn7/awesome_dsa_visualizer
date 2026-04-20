@@ -2,8 +2,11 @@ import { AppWindow, Maximize2 } from "lucide-react";
 import {
   getAlgorithmDemo,
   type AlgorithmId,
+  type DsuGraphEdge,
+  type DsuGraphNode,
+  type MockDsuGraphViz,
+  type MockVizModel,
   type MockStep,
-  type MockViz,
 } from "../lib/mockTrace";
 import {
   getAlgorithmEnvelopeTraces,
@@ -76,13 +79,25 @@ import {
   deriveVisualBars,
   type VisualBar,
 } from "../lib/visualBars";
+import {
+  buildDsuOrthogonalPolylinePoints,
+  dsuRow0LaneIndex,
+  dsuRow1LongEdgeGutterY,
+  dsuEdgeEuclideanLength,
+  dsuPointsToSmoothPathD,
+  DSU_LONG_EDGE_THRESHOLD_PX,
+  DSU_NODE_RADIUS_PX,
+  DSU_SVG_VIEW_HEIGHT,
+  DSU_SVG_VIEW_WIDTH,
+  getDsuNodePosition,
+} from "../lib/dsuGraphLayout";
 import { strings } from "../strings";
 import { PanelSkeleton } from "./LoadingState";
 import {
   splitCaptionByBackticks,
   stripCaptionBackticks,
 } from "@visualizer-ui";
-import type { MouseEvent } from "react";
+import type { CSSProperties, MouseEvent } from "react";
 import {
   useCallback,
   useEffect,
@@ -101,7 +116,7 @@ export type StepPointerNavigation = {
 
 type Props = {
   trace: MockStep[];
-  viz: MockViz;
+  viz: MockVizModel;
   variables: Record<string, string>;
   algorithmId: AlgorithmId;
   stepLine: number;
@@ -109,6 +124,8 @@ type Props = {
   enableAnimationScroll: boolean;
   /** No-scroll fit mode: if false, fit never scales above 1 (intrinsic size cap). */
   animationFitAllowUpscale: boolean;
+  displayConnections: boolean;
+  onDisplayConnectionsChange?: (value: boolean) => void;
   speedMs: number;
   isAutoPlayingStep: boolean;
   onPresentNative?: () => void;
@@ -143,6 +160,298 @@ function buildVizAriaLabel(
   return parts.join(". ");
 }
 
+function buildDsuGraphAriaLabel(viz: MockDsuGraphViz): string {
+  const active =
+    viz.activeEdge !== undefined
+      ? `Current union edge ${viz.activeEdge.from} to ${viz.activeEdge.to}. `
+      : "";
+  const idPart = viz.nodes.map((n) => `id[${n.id}]=${n.group}`).join(", ");
+  const captionPlain = stripCaptionBackticks(viz.caption);
+  return `${captionPlain}. ${active}${idPart}. ${viz.nodes.length} nodes, ${viz.edges.length} edges.`;
+}
+
+function dsuGroupClass(group: number): string {
+  const paletteSlots = 10;
+  const normalized = ((group % paletteSlots) + paletteSlots) % paletteSlots;
+  return `viz-dsu-node--group-${normalized}`;
+}
+
+type DsuPoint = { x: number; y: number };
+
+function pointOnCircleToward(from: DsuPoint, to: DsuPoint, radius: number): DsuPoint {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const len = Math.hypot(dx, dy);
+  if (len < 1e-6) return { x: from.x, y: from.y };
+  return {
+    x: from.x + (dx / len) * radius,
+    y: from.y + (dy / len) * radius,
+  };
+}
+
+function quickUnionEdgePath(from: DsuPoint, to: DsuPoint): string {
+  const start = pointOnCircleToward(from, to, DSU_NODE_RADIUS_PX);
+  const end = pointOnCircleToward(to, from, DSU_NODE_RADIUS_PX);
+  return `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
+}
+
+function isQuickUnionAlgorithm(algorithmId: AlgorithmId): boolean {
+  return algorithmId === "quick-union" || algorithmId === "quick-union-full";
+}
+
+/**
+ * Local compaction for unary vertical chains in quick-union tree layout.
+ * Keep enough separation to avoid overlap while preventing overlong links.
+ */
+const QUICK_UNION_UNARY_TARGET_GAP_PX = DSU_NODE_RADIUS_PX * 3.1;
+const QUICK_UNION_UNARY_MIN_GAP_PX = DSU_NODE_RADIUS_PX * 2.45;
+const QUICK_UNION_TREE_HORIZONTAL_PADDING_PX = 26;
+const QUICK_UNION_TREE_TOP_PADDING_PX = 38;
+const QUICK_UNION_TREE_BOTTOM_PADDING_PX = 30;
+
+function buildQuickUnionTreePositions(values: readonly number[]): Map<number, DsuPoint> {
+  const n = values.length;
+  const children = new Map<number, number[]>();
+  const roots: number[] = [];
+  for (let i = 0; i < n; i += 1) {
+    children.set(i, []);
+  }
+  for (let i = 0; i < n; i += 1) {
+    const parent = values[i]!;
+    if (parent === i) {
+      roots.push(i);
+    } else {
+      children.get(parent)?.push(i);
+    }
+  }
+  roots.sort((a, b) => a - b);
+  for (const entry of children.values()) {
+    entry.sort((a, b) => a - b);
+  }
+
+  const subtreeWidth = new Map<number, number>();
+  const depthMap = new Map<number, number>();
+  let maxDepth = 0;
+  const calcWidth = (node: number, depth: number): number => {
+    depthMap.set(node, depth);
+    if (depth > maxDepth) maxDepth = depth;
+    const kids = children.get(node) ?? [];
+    if (kids.length === 0) {
+      subtreeWidth.set(node, 1);
+      return 1;
+    }
+    let sum = 0;
+    for (const kid of kids) {
+      sum += calcWidth(kid, depth + 1);
+    }
+    const w = Math.max(1, sum);
+    subtreeWidth.set(node, w);
+    return w;
+  };
+
+  let totalUnits = 0;
+  for (const root of roots) {
+    totalUnits += calcWidth(root, 0);
+  }
+  const units = Math.max(totalUnits, 1);
+  const padX = QUICK_UNION_TREE_HORIZONTAL_PADDING_PX;
+  const usableW = DSU_SVG_VIEW_WIDTH - padX * 2;
+  const unitW = usableW / units;
+
+  const depthLevels = Math.max(maxDepth + 1, 1);
+  const topY = QUICK_UNION_TREE_TOP_PADDING_PX;
+  const bottomY = DSU_SVG_VIEW_HEIGHT - QUICK_UNION_TREE_BOTTOM_PADDING_PX;
+  const levelGap = depthLevels === 1 ? 0 : (bottomY - topY) / (depthLevels - 1);
+  const positions = new Map<number, DsuPoint>();
+
+  const place = (node: number, startUnit: number) => {
+    const kids = children.get(node) ?? [];
+    const width = subtreeWidth.get(node) ?? 1;
+    const centerUnit = startUnit + width / 2;
+    const depth = depthMap.get(node) ?? 0;
+    positions.set(node, {
+      x: padX + centerUnit * unitW,
+      y: topY + depth * levelGap,
+    });
+    let cursor = startUnit;
+    for (const kid of kids) {
+      const kidWidth = subtreeWidth.get(kid) ?? 1;
+      place(kid, cursor);
+      cursor += kidWidth;
+    }
+  };
+
+  let cursor = 0;
+  for (const root of roots) {
+    const width = subtreeWidth.get(root) ?? 1;
+    place(root, cursor);
+    cursor += width;
+  }
+
+  // Compress unary chains so each parent-child edge keeps the same compact gap.
+  for (let parent = 0; parent < n; parent += 1) {
+    const kids = children.get(parent) ?? [];
+    if (kids.length !== 1) continue;
+    const onlyChild = kids[0]!;
+    const parentPos = positions.get(parent);
+    const childPos = positions.get(onlyChild);
+    if (!parentPos || !childPos) continue;
+    const currentGap = childPos.y - parentPos.y;
+    if (currentGap <= QUICK_UNION_UNARY_TARGET_GAP_PX) continue;
+    const nextGap = Math.max(
+      QUICK_UNION_UNARY_MIN_GAP_PX,
+      QUICK_UNION_UNARY_TARGET_GAP_PX
+    );
+    positions.set(onlyChild, {
+      x: childPos.x,
+      y: parentPos.y + nextGap,
+    });
+  }
+
+  return positions;
+}
+
+function DsuNodeSlot({
+  node,
+  active,
+  preUnionPulse,
+  groupClass,
+  position,
+}: {
+  node: DsuGraphNode;
+  active: boolean;
+  preUnionPulse: boolean;
+  groupClass: string;
+  position?: DsuPoint;
+}) {
+  const pos = position ?? getDsuNodePosition(node.id);
+  return (
+    <div
+      className="viz-dsu-node-slot"
+      style={{ left: `${pos.x}px`, top: `${pos.y}px` }}
+    >
+      <div
+        className={`viz-dsu-node ${groupClass}${active ? " viz-dsu-node--active" : ""}${
+          preUnionPulse ? " viz-dsu-node--pre-union-pulse" : ""
+        }`}
+      >
+        {node.id}
+      </div>
+      <span className="viz-dsu-node-idval" aria-hidden>
+        {node.group}
+      </span>
+    </div>
+  );
+}
+
+type DsuGraphRenderModel = {
+  nodes: readonly DsuGraphNode[];
+  edges: readonly DsuGraphEdge[];
+  uniformEdgeColor?: boolean;
+  activeEdge?: DsuGraphEdge;
+  highlightIndices?: readonly number[];
+};
+
+function dsuEdgeClassName(
+  forceUniform: boolean,
+  isActive: boolean,
+  isLong: boolean,
+  emphasizeActiveEdge: boolean
+): string {
+  if (forceUniform) return "viz-dsu-edge";
+  if (emphasizeActiveEdge && isActive) {
+    return "viz-dsu-edge viz-dsu-edge--active";
+  }
+  if (isLong) {
+    return "viz-dsu-edge viz-dsu-edge--muted";
+  }
+  return "viz-dsu-edge";
+}
+
+function DsuGraph({
+  viz,
+  nodePositions,
+  showConnections,
+  useQuickUnionTreeLayout,
+  emphasizeActiveEdge,
+  preUnionPulse,
+}: {
+  viz: DsuGraphRenderModel;
+  nodePositions?: Map<number, DsuPoint> | null;
+  showConnections: boolean;
+  useQuickUnionTreeLayout: boolean;
+  emphasizeActiveEdge: boolean;
+  preUnionPulse: boolean;
+}) {
+  const highlightedNodeIds = new Set(viz.highlightIndices ?? []);
+  return (
+    <>
+      {showConnections ? (
+        <svg
+          className="viz-dsu-edges"
+          viewBox={`0 0 ${DSU_SVG_VIEW_WIDTH} ${DSU_SVG_VIEW_HEIGHT}`}
+          preserveAspectRatio="xMidYMid meet"
+          aria-hidden
+        >
+          {viz.edges.map((edge, idx) => {
+            const fromPos =
+              nodePositions?.get(edge.from) ?? getDsuNodePosition(edge.from);
+            const toPos =
+              nodePositions?.get(edge.to) ?? getDsuNodePosition(edge.to);
+            const points = buildDsuOrthogonalPolylinePoints(
+              edge.from,
+              edge.to,
+              undefined,
+              {
+                row0LaneIndex: dsuRow0LaneIndex(viz.edges, idx),
+                row1LongEdgeGutterY: dsuRow1LongEdgeGutterY(viz.edges, idx),
+              }
+            );
+            const isActive =
+              viz.activeEdge?.from === edge.from &&
+              viz.activeEdge?.to === edge.to;
+            const isLong =
+              dsuEdgeEuclideanLength(edge.from, edge.to) >
+              DSU_LONG_EDGE_THRESHOLD_PX;
+            const forceUniform = viz.uniformEdgeColor === true;
+            const edgeClass = dsuEdgeClassName(
+              forceUniform,
+              isActive,
+              isLong,
+              emphasizeActiveEdge
+            );
+            return (
+              <path
+                key={`${edge.from}-${edge.to}-${idx}`}
+                d={
+                  useQuickUnionTreeLayout
+                    ? quickUnionEdgePath(fromPos, toPos)
+                    : dsuPointsToSmoothPathD(points)
+                }
+                fill="none"
+                className={edgeClass}
+              />
+            );
+          })}
+        </svg>
+      ) : null}
+      {viz.nodes.map((node) => {
+        const isHighlighted = highlightedNodeIds.has(node.id);
+        return (
+          <DsuNodeSlot
+            key={node.id}
+            node={node}
+            active={isHighlighted}
+            preUnionPulse={preUnionPulse && isHighlighted}
+            groupClass={dsuGroupClass(node.group)}
+            position={nodePositions?.get(node.id)}
+          />
+        );
+      })}
+    </>
+  );
+}
+
 export function AnimationPanel({
   trace,
   viz,
@@ -152,6 +461,8 @@ export function AnimationPanel({
   showArrayIndices,
   enableAnimationScroll,
   animationFitAllowUpscale,
+  displayConnections,
+  onDisplayConnectionsChange,
   speedMs,
   isAutoPlayingStep,
   onPresentNative,
@@ -261,9 +572,9 @@ export function AnimationPanel({
     () => splitCaptionByBackticks(displayCaption),
     [displayCaption]
   );
+  const vizMinIndex = "minIndex" in viz ? viz.minIndex : undefined;
   const maxVal = Math.max(1, ...viz.values);
-  const showMinRow =
-    typeof viz.minIndex === "number" && viz.minIndex >= 0;
+  const showMinRow = typeof vizMinIndex === "number" && vizMinIndex >= 0;
   const envelopeTraces = useMemo(
     () => getAlgorithmEnvelopeTraces(algorithmId, trace, getAlgorithmDemo),
     [algorithmId, trace]
@@ -274,12 +585,25 @@ export function AnimationPanel({
         step.viz.caption,
         step.variables
       );
+      if (step.viz.kind === "dsuGraph") {
+        return {
+          kind: "dsuGraph" as const,
+          captionParts: splitCaptionByBackticks(displayStepCaption),
+          values: step.viz.values,
+          nodes: step.viz.nodes,
+          edges: step.viz.edges,
+          uniformEdgeColor: step.viz.uniformEdgeColor,
+        };
+      }
       return {
+        kind: "bars" as const,
         captionParts: splitCaptionByBackticks(displayStepCaption),
         values: step.viz.values,
         maxVal: Math.max(1, ...step.viz.values),
         showMinSlot:
-          typeof step.viz.minIndex === "number" && step.viz.minIndex >= 0,
+          "minIndex" in step.viz &&
+          typeof step.viz.minIndex === "number" &&
+          step.viz.minIndex >= 0,
       };
     };
 
@@ -411,7 +735,7 @@ export function AnimationPanel({
         pointers,
         colCenterInTrackAtRest,
         SPLIT_OFFSET,
-        showMinRow ? viz.minIndex : undefined
+        showMinRow ? vizMinIndex : undefined
       );
       iCenter = ptrCenters.i;
       jCenter = ptrCenters.j;
@@ -518,8 +842,8 @@ export function AnimationPanel({
     const enterEls: HTMLSpanElement[] = [];
 
     const minIdx =
-      showMinRow && typeof viz.minIndex === "number" && viz.minIndex >= 0
-        ? viz.minIndex
+      showMinRow && typeof vizMinIndex === "number" && vizMinIndex >= 0
+        ? vizMinIndex
         : undefined;
 
     const pointerTargets: PointerTargetMap = {
@@ -683,7 +1007,7 @@ export function AnimationPanel({
     flipDurationMs,
     viz.values,
     pointers,
-    viz.minIndex,
+    vizMinIndex,
     showMinRow,
     shouldShowArrayIndices,
     fitScale,
@@ -765,8 +1089,26 @@ export function AnimationPanel({
     stripCaptionBackticks(displayCaption),
     pointers,
     viz.values.length,
-    viz.minIndex
+    vizMinIndex
   );
+  const isDsuGraph = viz.kind === "dsuGraph";
+  const dsuViz = isDsuGraph ? (viz as MockDsuGraphViz) : null;
+  const isPreUnionCue =
+    dsuViz?.transitionKind === "pre-union" && dsuViz.transitionEffect === "pulse";
+  const preUnionCueDurationMs = Math.max(180, Math.round(flipDurationMs * 0.75));
+  const dsuCueStyle: CSSProperties | undefined = isPreUnionCue
+    ? ({
+        ["--viz-dsu-pre-union-duration" as "--viz-dsu-pre-union-duration"]: `${preUnionCueDurationMs}ms`,
+      } as CSSProperties)
+    : undefined;
+  const useQuickUnionTreeLayout = isQuickUnionAlgorithm(algorithmId);
+  const supportsDisplayConnections = isDsuGraph && !useQuickUnionTreeLayout;
+  const dsuNodePositions = useMemo(() => {
+    if (!dsuViz || !useQuickUnionTreeLayout) return null;
+    return buildQuickUnionTreePositions(dsuViz.values);
+  }, [dsuViz, useQuickUnionTreeLayout]);
+  const showDsuConnections = !supportsDisplayConnections || displayConnections;
+  const vizAriaLabel = dsuViz ? buildDsuGraphAriaLabel(dsuViz) : ariaLabel;
   const fixedBundleStyle =
     !enableAnimationScroll && fitEnvelopeSize
       ? { width: `${fitEnvelopeSize.width}px` }
@@ -790,8 +1132,25 @@ export function AnimationPanel({
     <div className="panel panel-full">
       <div className="panel-head">
         <span className="panel-head-title">{strings.panels.animation}</span>
-        {onPresentNative || onPresentOverlay ? (
+        {supportsDisplayConnections || onPresentNative || onPresentOverlay ? (
           <div className="panel-head-actions">
+            {supportsDisplayConnections ? (
+              <label className="panel-head-switch">
+                <input
+                  type="checkbox"
+                  className="panel-head-switch-input"
+                  checked={displayConnections}
+                  onChange={(e) => onDisplayConnectionsChange?.(e.target.checked)}
+                  aria-label={strings.panels.displayConnections}
+                />
+                <span className="panel-head-switch-track" aria-hidden>
+                  <span className="panel-head-switch-knob" />
+                </span>
+                <span className="panel-head-switch-label">
+                  {strings.panels.displayConnections}
+                </span>
+              </label>
+            ) : null}
             {onPresentNative ? (
               <button
                 type="button"
@@ -888,11 +1247,23 @@ export function AnimationPanel({
                       )}
                     </p>
                     <div
-                      className="viz-bars"
+                      className={dsuViz ? "viz-dsu-graph" : "viz-bars"}
                       ref={barsTrackRef}
                       role="img"
-                      aria-label={ariaLabel}
+                      aria-label={vizAriaLabel}
+                      style={dsuViz ? dsuCueStyle : undefined}
                     >
+                      {dsuViz ? (
+                        <DsuGraph
+                          viz={dsuViz}
+                          nodePositions={dsuNodePositions}
+                          showConnections={showDsuConnections}
+                          useQuickUnionTreeLayout={useQuickUnionTreeLayout}
+                          emphasizeActiveEdge={true}
+                          preUnionPulse={isPreUnionCue}
+                        />
+                      ) : (
+                        <>
                         <div className="viz-pointers-layer" aria-hidden>
                         {pointers.i !== undefined ||
                         pointerTransitionStateRef.current.i.mounted ? (
@@ -1000,6 +1371,8 @@ export function AnimationPanel({
                           </div>
                         );
                         })}
+                        </>
+                      )}
                       </div>
                   </div>
                 </div>
@@ -1027,29 +1400,46 @@ export function AnimationPanel({
                     )
                   )}
                 </p>
-                <div className="viz-bars" aria-hidden>
-                  {step.values.map((n, idx) => {
-                    const h = getBarHeightPercent(n, step.maxVal);
-                    return (
-                      <div key={idx} className="viz-bar-col">
-                        <div className="viz-pointers" aria-hidden />
-                        {step.showMinSlot ? (
-                          <div className="viz-min-slot" aria-hidden />
-                        ) : null}
-                        <div className="viz-bar-track">
-                          <div className="viz-bar" style={{ height: h }}>
-                            {n}
+                {step.kind === "dsuGraph" ? (
+                  <div className="viz-dsu-graph" aria-hidden>
+                    <DsuGraph
+                      viz={step}
+                      nodePositions={
+                        useQuickUnionTreeLayout
+                          ? buildQuickUnionTreePositions(step.values)
+                          : null
+                      }
+                      showConnections={showDsuConnections}
+                      useQuickUnionTreeLayout={useQuickUnionTreeLayout}
+                      emphasizeActiveEdge={false}
+                      preUnionPulse={false}
+                    />
+                  </div>
+                ) : (
+                  <div className="viz-bars" aria-hidden>
+                    {step.values.map((n, idx) => {
+                      const h = getBarHeightPercent(n, step.maxVal);
+                      return (
+                        <div key={idx} className="viz-bar-col">
+                          <div className="viz-pointers" aria-hidden />
+                          {step.showMinSlot ? (
+                            <div className="viz-min-slot" aria-hidden />
+                          ) : null}
+                          <div className="viz-bar-track">
+                            <div className="viz-bar" style={{ height: h }}>
+                              {n}
+                            </div>
                           </div>
+                          {shouldShowArrayIndices ? (
+                            <div className="viz-index" aria-hidden>
+                              {idx}
+                            </div>
+                          ) : null}
                         </div>
-                        {shouldShowArrayIndices ? (
-                          <div className="viz-index" aria-hidden>
-                            {idx}
-                          </div>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             ))}
           </div>

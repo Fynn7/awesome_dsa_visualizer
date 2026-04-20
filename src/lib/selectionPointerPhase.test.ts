@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
 
+import { resolveAlgorithmAnchorLine } from "./algorithmLineAnchors";
 import { selectionSortTrace } from "./mockTrace";
 import { isSelectionJInactivePhase } from "./selectionPointerPhase";
+
+const swapLine = resolveAlgorithmAnchorLine("selection", "swap");
+const outerForLine = resolveAlgorithmAnchorLine("selection", "outerFor");
 
 describe("isSelectionJInactivePhase", () => {
   it("marks selection swap step with visible j as inactive", () => {
     const firstSwap = selectionSortTrace.find(
-      (step) => step.line === 10 && step.variables.j !== "--"
+      (step) => step.line === swapLine && step.variables.j !== "--"
     );
     expect(firstSwap).toBeDefined();
     expect(
@@ -20,7 +24,7 @@ describe("isSelectionJInactivePhase", () => {
 
   it("clears inactive state on next outer-loop step", () => {
     const nextOuter = selectionSortTrace.find(
-      (step) => step.line === 5 && step.variables.i === "1"
+      (step) => step.line === outerForLine && step.variables.i === "1"
     );
     expect(nextOuter).toBeDefined();
     expect(
@@ -30,14 +34,14 @@ describe("isSelectionJInactivePhase", () => {
 
   it("does not activate for no-j swap or non-selection algorithms", () => {
     const noJSwap = selectionSortTrace.find(
-      (step) => step.line === 10 && step.variables.j === "--"
+      (step) => step.line === swapLine && step.variables.j === "--"
     );
     expect(noJSwap).toBeDefined();
     expect(
       isSelectionJInactivePhase("selection", noJSwap!.line, undefined)
     ).toBe(false);
     expect(
-      isSelectionJInactivePhase("insertion", 10, 3)
+      isSelectionJInactivePhase("insertion", swapLine, 3)
     ).toBe(false);
   });
 });

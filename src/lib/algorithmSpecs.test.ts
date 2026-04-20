@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { resolveAlgorithmAnchorLine } from "./algorithmLineAnchors";
 import {
   getAlgorithmEnvelopeTraces,
   getAlgorithmSpec,
@@ -19,20 +20,23 @@ describe("algorithmSpecs", () => {
     expect(insertion.visual.inferJMinus1FromHighlights).toBe(true);
     expect(
       insertion.visual.getSortedExclusiveEnd({
-        stepLine: 18,
+        stepLine: resolveAlgorithmAnchorLine("insertion", "callSort"),
         variables: {},
         valuesLength: 4,
       })
     ).toBe(4);
     expect(
       insertion.visual.getSortedExclusiveEnd({
-        stepLine: 7,
+        stepLine: resolveAlgorithmAnchorLine("insertion", "ifCompare"),
         variables: {},
         valuesLength: 4,
       })
     ).toBeUndefined();
     expect(
-      insertion.visual.isJInactivePhase({ stepLine: 10, jIndex: 3 })
+      insertion.visual.isJInactivePhase({
+        stepLine: resolveAlgorithmAnchorLine("insertion", "breakBranch"),
+        jIndex: 3,
+      })
     ).toBe(false);
   });
 
@@ -42,16 +46,22 @@ describe("algorithmSpecs", () => {
     expect(selection.visual.inferJMinus1FromHighlights).toBe(false);
     expect(
       selection.visual.getSortedExclusiveEnd({
-        stepLine: 5,
+        stepLine: resolveAlgorithmAnchorLine("selection", "outerFor"),
         variables: { i: "2" },
         valuesLength: 4,
       })
     ).toBe(2);
     expect(
-      selection.visual.isJInactivePhase({ stepLine: 10, jIndex: 3 })
+      selection.visual.isJInactivePhase({
+        stepLine: resolveAlgorithmAnchorLine("selection", "swap"),
+        jIndex: 3,
+      })
     ).toBe(true);
     expect(
-      selection.visual.isJInactivePhase({ stepLine: 9, jIndex: 3 })
+      selection.visual.isJInactivePhase({
+        stepLine: resolveAlgorithmAnchorLine("selection", "minUpdate"),
+        jIndex: 3,
+      })
     ).toBe(false);
   });
 

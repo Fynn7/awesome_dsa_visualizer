@@ -1,4 +1,5 @@
 import type { AlgorithmId } from "./mockTrace";
+import { resolveAlgorithmAnchorLine } from "./algorithmLineAnchors";
 
 /**
  * Selection sort keeps `j` visible on the swap step after inner-loop scanning.
@@ -9,9 +10,10 @@ export function isSelectionJInactivePhase(
   stepLine: number,
   jIndex: number | undefined
 ): boolean {
+  const swapLine = resolveAlgorithmAnchorLine("selection", "swap");
   return (
     algorithmId === "selection" &&
-    stepLine === 10 &&
+    stepLine === swapLine &&
     typeof jIndex === "number"
   );
 }

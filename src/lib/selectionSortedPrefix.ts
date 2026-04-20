@@ -1,11 +1,12 @@
 import { parseNonNegativeIndex } from "./parseArrayPointers";
+import { resolveAlgorithmAnchorLine } from "./algorithmLineAnchors";
 
 /**
  * Exclusive end index of the sorted prefix for selection sort
- * (`SELECTION_SORT_SOURCE`: outer 5, min 6, inner 7–9, exch 10). Indices in
+ * (from semantic anchors: outer-loop header through swap step). Indices in
  * `[0, i)` are already in final positions for the current outer `i`.
  *
- * After `selection_sort(data)` (line 18), returns `valuesLength` so the full
+ * After `selection_sort(data)` returns, this function yields `valuesLength` so the full
  * array can render with the sorted bar tone when highlights are cleared.
  */
 export function selectionSortedExclusiveEnd(
@@ -13,8 +14,11 @@ export function selectionSortedExclusiveEnd(
   variables: Record<string, string>,
   valuesLength: number
 ): number | undefined {
-  if (line === 18) return valuesLength;
-  if (line < 5 || line > 10) return undefined;
+  const completionLine = resolveAlgorithmAnchorLine("selection", "callSort");
+  const outerForLine = resolveAlgorithmAnchorLine("selection", "outerFor");
+  const swapLine = resolveAlgorithmAnchorLine("selection", "swap");
+  if (line === completionLine) return valuesLength;
+  if (line < outerForLine || line > swapLine) return undefined;
   const i = parseNonNegativeIndex(variables.i, valuesLength);
   if (i === undefined) return undefined;
   return i;

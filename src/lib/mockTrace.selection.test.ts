@@ -6,15 +6,18 @@ import {
   selectionSortLoopPulseRules,
   selectionSortTrace,
 } from "./mockTrace";
+import { resolveAlgorithmAnchorLine } from "./algorithmLineAnchors";
 
 describe("selection sort demo (DSA exch + intArray)", () => {
-  it("keeps SELECTION_SORT_SOURCE line numbers aligned with trace (data on line 18)", () => {
+  it("keeps SELECTION_SORT_SOURCE anchors aligned with trace", () => {
     const lines = SELECTION_SORT_SOURCE.split("\n");
     expect(lines[0]).toMatch(/^from DSA import intArray, exch$/);
-    expect(lines[12]).toBe("data = intArray(4)");
-    expect(lines[17]).toBe("selection_sort(data)");
-    expect(lines[18]).toBe("");
-    expect(lines.length).toBe(19);
+    expect(lines[resolveAlgorithmAnchorLine("selection", "dataAlloc") - 1]).toBe(
+      "data = intArray(4)"
+    );
+    expect(lines[resolveAlgorithmAnchorLine("selection", "callSort") - 1]).toBe(
+      "selection_sort(data)"
+    );
   });
 
   it("exercises selection if/loop pulse rules", () => {
@@ -81,9 +84,9 @@ describe("selection sort demo (DSA exch + intArray)", () => {
     });
   });
 
-  it("ends with sorted array and matching line 18", () => {
+  it("ends with sorted array and matching completion anchor", () => {
     const last = selectionSortTrace[selectionSortTrace.length - 1]!;
-    expect(last.line).toBe(18);
+    expect(last.line).toBe(resolveAlgorithmAnchorLine("selection", "callSort"));
     expect(last.viz.values).toEqual([2, 3, 5, 7]);
   });
 
@@ -97,10 +100,12 @@ describe("selection sort demo (DSA exch + intArray)", () => {
 
     expect(withMin.length).toBeGreaterThan(0);
     for (const step of withMin) {
-      expect(step.viz.minIndex).toBe(Number(step.variables.min_idx));
+      const vizMin = "minIndex" in step.viz ? step.viz.minIndex : undefined;
+      expect(vizMin).toBe(Number(step.variables.min_idx));
     }
     for (const step of withoutMin) {
-      expect(step.viz.minIndex).toBeUndefined();
+      const vizMin = "minIndex" in step.viz ? step.viz.minIndex : undefined;
+      expect(vizMin).toBeUndefined();
     }
   });
 });

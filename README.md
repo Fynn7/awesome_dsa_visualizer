@@ -7,7 +7,7 @@ A browser-based visualization tool for teaching university-level data structures
 
 - **Step-by-step execution**
   - Highlighted current line inside Python code.
-  - Synchronized animation in the visualization panel (for example, sorting traces).
+  - Synchronized animation in the visualization panel (for example, sorting traces and union-find graph steps).
   - Persistent variable tracking area, optimized for classroom readability.
 
 - **Teaching-focused workspace**
@@ -20,11 +20,24 @@ A browser-based visualization tool for teaching university-level data structures
 
 - **Minimal search home**
   - `/` shows a Google-like minimal entry page with a single algorithm search input.
+  - Includes **Quick Find** (a pre-union cue step plus one union-result step per `union()`) and **Quick Find - Full Trace** (line-by-step inside `union`, now also with a pre-union cue step) for *Exercise 1: Analysis of quick-find*; open via `/app?algorithm=quick-find` or `/app?algorithm=quick-find-full`.
+  - Includes **Quick Union** (a pre-union cue step plus one union-result step per `union()`) and **Quick Union - Full Trace** (line-by-step inside `union` and `find`, now also with a pre-union cue step) for *Exercise 2: Analysis of quick-union*; open via `/app?algorithm=quick-union` or `/app?algorithm=quick-union-full`.
   - Search behavior and row highlighting reuse the same matching and UI style as the in-app command palette.
   - Each query piece must fuzzy-match the item title before that item can appear in results.
   - Press `Enter` to open the top match, or choose a row with keyboard/mouse; both go to `/app`.
   - If there is no match, you stay on `/` and see the same empty-state copy used by command palette.
   - If the route throws an uncaught error while rendering, the app shows a full-screen recovery screen (back to home or reload). User-visible copy is defined in `src/strings.ts` under `routeError`.
+
+### Union-Find Exercise Traces
+
+- Both demos use the same precomputed operation sequence `(9,0) (3,4) (5,8) (7,2) (2,1) (5,7) (0,3) (4,2)` and the same displayed source (synced with `src_py/uebung1.py`, including `connected` and the input loop).
+- **Quick Find** (`algorithm=quick-find`): each `union()` is shown as two steps: a pre-union cue frame (pulse-highlight operated nodes) followed by one completed-union frame; animation captions for the union-result frame show only the `union(p,q)` call in inline code style; console logs are union summaries only (no per-`i` scan lines); the code panel highlights the `def union(self, p, q):` line on each cue/result step; `array_accesses` in Variables remains the union total on result steps (cue steps keep `0`).
+- **Quick Find - Full Trace** (`algorithm=quick-find-full`): same DSU rules and final numbers as today’s line-by-step trace inside `union`.
+- **Quick Union** (`algorithm=quick-union`): each `union()` is shown as two steps: a pre-union cue frame (pulse-highlight operated/root nodes) followed by one completed-union frame using the Exercise 2 official answer table. Variables show `id[] before`, `id[] after`, root pair (`root_p`, `root_q`), and union-level `array_accesses`; the animation panel renders parent-pointer tree edges (`i -> id[i]` for non-root nodes) after each union.
+- **Quick Union - Full Trace** (`algorithm=quick-union-full`): line-by-line execution inside `union` and `find` (`while` checks, advances, and final root-link assignment). Running `array_accesses` follows the quick-union counting used by the official answer.
+- In Quick Find modes (Quick Find / Quick Find - Full Trace), Animation panel includes a `display connections` toggle (default OFF). Its state is persisted in `localStorage`, so your preference is reused on next visit. In Quick Union modes (Quick Union / Quick Union - Full Trace), connections are always visible and the toggle is not shown.
+- The Animation panel renders a DSU graph (`0..9` nodes): each circle labels vertex index `i`, with the current `id[i]` value shown at the top-right of the circle. In both Quick Find modes, nodes are deterministically color-mapped by current `id[i]` group value so equal groups share the same fill color; the palette was tuned for stronger cross-group contrast while staying consistent with the dark classroom theme. Node fills keep a translucent look, with an opaque underlay disk so edge strokes do not visually bleed through node interiors. Union edges are SVG paths that follow the same detour keypoints as before (endpoints on node circles) with small rounded corners at bends so lines stay close to the guide polyline; segments that would cross unrelated nodes still route through a horizontal gutter (cross-row pairs use the mid channel between the two rows; non-adjacent pairs on the **top** row use stacked channels **between** the top row and the mid gutter so they do not overlap cross-row routes such as 0–9; non-adjacent pairs on the **bottom** row use stacked channels **above** that row but **below** the mid gutter, with lane height determined by span width so wider spans such as 5–8 keep a stable y across steps, while narrower spans such as 5–7 are always placed slightly lower than 5–8 to avoid overlap). In **Full** mode, a new union edge is added only after the trace hits `if self.id[i] == pid` with a match (aligned with the Python control flow), then stays for the rest of that union; longer non-highlighted edges are slightly de-emphasized. The current union edge is highlighted while it is active, and the last `Finished` frame renders all edges with one uniform color.
+- **Quick Find - Full Trace** mode: the code panel uses fine-grained execution highlighting line-by-line through the `QuickFindUF.union` body with real execution timing; captions render the `union(p,q)` call in inline code where it appears; `array_accesses` is a running counter per sub-step and each union completion matches the official totals.
 
 - **Presentation modes**
   - Native browser fullscreen presentation when available.
@@ -102,3 +115,4 @@ Developer maintenance note:
 
 `README.md` is the single source of truth for current entry flow and routing behavior.
 
+Code-line anchor policy (no hardcoded trace line numbers) is maintained in [`docs/line-anchor-spec.md`](docs/line-anchor-spec.md) as the authoritative engineering spec.

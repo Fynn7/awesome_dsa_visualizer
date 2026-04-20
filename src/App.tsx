@@ -24,6 +24,7 @@ import { strings } from "./strings";
 import type { AlgorithmId } from "./lib/mockTrace";
 
 const HEADER_ICON = { size: 18, strokeWidth: 2 } as const;
+const UI_PREFERENCES_STORAGE_KEY = "awesome-dsa-visualizer:ui-preferences";
 
 type PresentationMode = "off" | "native" | "overlay";
 
@@ -32,10 +33,24 @@ type AppProps = {
 };
 
 export default function App({ initialAlgorithmId }: AppProps) {
+  const loadDisplayConnectionsPreference = (): boolean => {
+    if (typeof window === "undefined") return false;
+    try {
+      const raw = window.localStorage.getItem(UI_PREFERENCES_STORAGE_KEY);
+      if (!raw) return false;
+      const parsed = JSON.parse(raw) as { displayConnections?: unknown };
+      return parsed.displayConnections === true;
+    } catch {
+      return false;
+    }
+  };
   const [state, dispatch] = useReducer(
     executionReducer,
     undefined,
-    createInitialState
+    () =>
+      createInitialState({
+        displayConnections: loadDisplayConnectionsPreference(),
+      })
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
@@ -171,6 +186,17 @@ export default function App({ initialAlgorithmId }: AppProps) {
     }
     dispatch({ type: "SET_ALGORITHM", algorithmId: initialAlgorithmId });
   }, [initialAlgorithmId]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        UI_PREFERENCES_STORAGE_KEY,
+        JSON.stringify({ displayConnections: state.displayConnections })
+      );
+    } catch {
+      // Ignore storage failures (private mode / quota / disabled storage).
+    }
+  }, [state.displayConnections]);
 
   return (
     <div className="app-shell" aria-busy={workspaceBusy}>
