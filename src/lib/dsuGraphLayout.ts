@@ -128,7 +128,7 @@ export function dsuBelowRow1LaneIndex(
   // Keep the widest spans on the highest lane so 5–8 stays above 5–7 across steps.
   // With the current vertical budget between the mid gutter and row-1 circles, we support
   // two stable lanes: span=3 (e.g. 5–8) at lane 0, span=2 (e.g. 5–7) at lane 1.
-  return spanCols <= 2 ? 1 : 0;
+  return Math.max(0, 4 - spanCols);
 }
 
 /**
