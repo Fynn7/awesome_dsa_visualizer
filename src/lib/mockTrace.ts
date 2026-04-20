@@ -1011,7 +1011,7 @@ function buildQuickUnionTreeEdges(values: number[]): DsuGraphEdge[] {
 function parseUnionOperation(op: string): { p: number; q: number } {
   const matched = op.match(/^union\((\d+),(\d+)\)$/);
   if (!matched) {
-    throw new Error(`Invalid quick-find operation: ${op}`);
+    throw new Error(`Invalid union operation: ${op}`);
   }
   return { p: Number(matched[1]), q: Number(matched[2]) };
 }
@@ -1035,7 +1035,7 @@ const quickFindLine = {
   unionIf: () => resolveAlgorithmAnchorOffset("quick-find", "unionDef", 4),
   unionAssign: () => resolveAlgorithmAnchorOffset("quick-find", "unionDef", 5),
   unionExit: () => resolveAlgorithmAnchorOffset("quick-find", "unionDef", 3),
-  finished: () => resolveAlgorithmAnchorOffset("quick-find", "unionDef", 6),
+  finished: () => quickFindLine.unionExit(),
 } as const;
 
 function buildQuickFindTrace(): MockStep[] {
@@ -1391,7 +1391,7 @@ const quickUnionLine = {
   unionFindP: () => resolveAlgorithmAnchorLine("quick-union", "unionFindP"),
   unionFindQ: () => resolveAlgorithmAnchorLine("quick-union", "unionFindQ"),
   unionAssign: () => resolveAlgorithmAnchorLine("quick-union", "unionAssign"),
-  finished: () => resolveAlgorithmAnchorOffset("quick-union", "unionDef", 4),
+  finished: () => resolveAlgorithmAnchorLine("quick-union", "unionAssign"),
 } as const;
 
 type QuickUnionFindResult = {
@@ -1457,9 +1457,11 @@ function buildQuickUnionTrace(): MockStep[] {
     const { p, q } = parseUnionOperation(unionStep.op);
     const idBefore = [...unionStep.before];
     const idAfter = [...unionStep.after];
-    const rootP = runQuickUnionFind(idBefore, p).root;
-    const rootQ = runQuickUnionFind(idBefore, q).root;
-    const accesses = runQuickUnionFind(idBefore, p).accesses + runQuickUnionFind(idBefore, q).accesses + 1;
+    const findP = runQuickUnionFind(idBefore, p);
+    const findQ = runQuickUnionFind(idBefore, q);
+    const rootP = findP.root;
+    const rootQ = findQ.root;
+    const accesses = findP.accesses + findQ.accesses + 1;
 
     if (accesses !== unionStep.accesses) {
       throw new Error(
@@ -1669,7 +1671,7 @@ function buildQuickUnionFullTrace(): MockStep[] {
       jValue: "--",
     });
 
-    runQuickUnionFind(running, p, ({ i, next, accessType }) => {
+    const findP = runQuickUnionFind(running, p, ({ i, next, accessType }) => {
       accesses += 1;
       if (accessType === "condition") {
         pushStep({
@@ -1696,7 +1698,7 @@ function buildQuickUnionFullTrace(): MockStep[] {
         });
       }
     });
-    rootP = runQuickUnionFind(running, p).root;
+    rootP = findP.root;
     pushStep({
       line: findReturnLine,
       caption: `${quickUnionCaptionUnion(unionStep.op)}: find(${p}) returns ${rootP}`,
@@ -1717,7 +1719,7 @@ function buildQuickUnionFullTrace(): MockStep[] {
       jValue: "--",
     });
 
-    runQuickUnionFind(running, q, ({ i, next, accessType }) => {
+    const findQ = runQuickUnionFind(running, q, ({ i, next, accessType }) => {
       accesses += 1;
       if (accessType === "condition") {
         pushStep({
@@ -1744,7 +1746,7 @@ function buildQuickUnionFullTrace(): MockStep[] {
         });
       }
     });
-    rootQ = runQuickUnionFind(running, q).root;
+    rootQ = findQ.root;
     pushStep({
       line: findReturnLine,
       caption: `${quickUnionCaptionUnion(unionStep.op)}: find(${q}) returns ${rootQ}`,

@@ -1,4 +1,4 @@
-from DSA import intArray
+from DSA import intArray, stdReadInt, stdIsEmpty
 
 
 class QuickUnionUF:
@@ -16,3 +16,18 @@ class QuickUnionUF:
         i = self.find(p)
         j = self.find(q)
         self.id[i] = j
+
+    def connected(self, p, q):
+        return self.find(p) == self.find(q)
+
+
+n = stdReadInt()
+uf = QuickUnionUF(n)
+
+while not stdIsEmpty():
+    p = stdReadInt()
+    q = stdReadInt()
+
+    if not uf.connected(p, q):
+        uf.union(p, q)
+        print(p, q)
