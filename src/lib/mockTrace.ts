@@ -199,6 +199,40 @@ while not stdIsEmpty():
         print(p, q)
 `;
 
+export const QUICK_UNION_SOURCE = `from DSA import intArray, stdReadInt, stdIsEmpty
+
+class QuickUnionUF:
+    def __init__(self, n):
+        self.id = intArray(n)
+        for i in range(len(self.id)):
+            self.id[i] = i
+
+    def find(self, i):
+        while i != self.id[i]:
+            i = self.id[i]
+        return i
+
+    def union(self, p, q):
+        i = self.find(p)
+        j = self.find(q)
+        self.id[i] = j
+
+    def connected(self, p, q):
+        return self.find(p) == self.find(q)
+
+
+n = stdReadInt()
+uf = QuickUnionUF(n)
+
+while not stdIsEmpty():
+    p = stdReadInt()
+    q = stdReadInt()
+
+    if not uf.connected(p, q):
+        uf.union(p, q)
+        print(p, q)
+`;
+
 /** Inner `for j` (lines 7–9); outer `for i` (lines 5–10). */
 export const selectionSortLoopPulseRules: LoopPulseRestartRule[] = [
   {
@@ -903,6 +937,13 @@ type QuickFindStepInput = {
   edge: DsuGraphEdge;
 };
 
+type QuickUnionStepInput = {
+  op: string;
+  before: number[];
+  after: number[];
+  accesses: number;
+};
+
 const QUICK_FIND_STEP_INPUTS: QuickFindStepInput[] = [
   {
     op: "union(9,0)",
@@ -962,12 +1003,74 @@ const QUICK_FIND_STEP_INPUTS: QuickFindStepInput[] = [
   },
 ];
 
+const QUICK_UNION_STEP_INPUTS: QuickUnionStepInput[] = [
+  {
+    op: "union(9,0)",
+    before: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    after: [0, 1, 2, 3, 4, 5, 6, 7, 8, 0],
+    accesses: 3,
+  },
+  {
+    op: "union(3,4)",
+    before: [0, 1, 2, 3, 4, 5, 6, 7, 8, 0],
+    after: [0, 1, 2, 4, 4, 5, 6, 7, 8, 0],
+    accesses: 3,
+  },
+  {
+    op: "union(5,8)",
+    before: [0, 1, 2, 4, 4, 5, 6, 7, 8, 0],
+    after: [0, 1, 2, 4, 4, 8, 6, 7, 8, 0],
+    accesses: 3,
+  },
+  {
+    op: "union(7,2)",
+    before: [0, 1, 2, 4, 4, 8, 6, 7, 8, 0],
+    after: [0, 1, 2, 4, 4, 8, 6, 2, 8, 0],
+    accesses: 3,
+  },
+  {
+    op: "union(2,1)",
+    before: [0, 1, 2, 4, 4, 8, 6, 2, 8, 0],
+    after: [0, 1, 1, 4, 4, 8, 6, 2, 8, 0],
+    accesses: 3,
+  },
+  {
+    op: "union(5,7)",
+    before: [0, 1, 1, 4, 4, 8, 6, 2, 8, 0],
+    after: [0, 1, 1, 4, 4, 8, 6, 2, 1, 0],
+    accesses: 9,
+  },
+  {
+    op: "union(0,3)",
+    before: [0, 1, 1, 4, 4, 8, 6, 2, 1, 0],
+    after: [4, 1, 1, 4, 4, 8, 6, 2, 1, 0],
+    accesses: 5,
+  },
+  {
+    op: "union(4,2)",
+    before: [4, 1, 1, 4, 4, 8, 6, 2, 1, 0],
+    after: [4, 1, 1, 4, 1, 8, 6, 2, 1, 0],
+    accesses: 5,
+  },
+];
+
 function buildDsuNodes(values: number[]): DsuGraphNode[] {
   return values.map((group, id) => ({ id, group }));
 }
 
 function formatIdArray(values: number[]): string {
   return `[${values.join(", ")}]`;
+}
+
+function buildQuickUnionTreeEdges(values: number[]): DsuGraphEdge[] {
+  const edges: DsuGraphEdge[] = [];
+  for (let i = 0; i < values.length; i += 1) {
+    const parent = values[i]!;
+    if (parent !== i) {
+      edges.push({ from: i, to: parent });
+    }
+  }
+  return edges;
 }
 
 function parseUnionOperation(op: string): { p: number; q: number } {
@@ -980,6 +1083,11 @@ function parseUnionOperation(op: string): { p: number; q: number } {
 
 /** `union(p,q)` wrapped in backticks for caption inline-code segments (see `splitCaptionByBackticks`). */
 function quickFindCaptionUnion(op: string): string {
+  return `\`${op}\``;
+}
+
+/** `union(p,q)` wrapped in backticks for caption inline-code segments (see `splitCaptionByBackticks`). */
+function quickUnionCaptionUnion(op: string): string {
   return `\`${op}\``;
 }
 
@@ -1293,6 +1401,408 @@ function buildQuickFindUnionTrace(): MockStep[] {
 
 export const quickFindUnionTrace: MockStep[] = buildQuickFindUnionTrace();
 
+/** 1-based line index of `def union(self, p, q):` inside {@link QUICK_UNION_SOURCE}. */
+function findQuickUnionUnionDefOneBasedLine(): number {
+  const lines = QUICK_UNION_SOURCE.split("\n");
+  for (let i = 0; i < lines.length; i += 1) {
+    if (/^\s*def union\(self,\s*p,\s*q\)\s*:/.test(lines[i]!)) {
+      return i + 1;
+    }
+  }
+  throw new Error("QUICK_UNION_SOURCE: union method definition line not found");
+}
+
+/** 1-based line index of `def find(self, i):` inside {@link QUICK_UNION_SOURCE}. */
+function findQuickUnionFindDefOneBasedLine(): number {
+  const lines = QUICK_UNION_SOURCE.split("\n");
+  for (let i = 0; i < lines.length; i += 1) {
+    if (/^\s*def find\(self,\s*i\)\s*:/.test(lines[i]!)) {
+      return i + 1;
+    }
+  }
+  throw new Error("QUICK_UNION_SOURCE: find method definition line not found");
+}
+
+type QuickUnionFindResult = {
+  root: number;
+  accesses: number;
+};
+
+function runQuickUnionFind(
+  values: number[],
+  start: number,
+  onAccess?: (ctx: { i: number; next: number; accessType: "condition" | "advance" }) => void
+): QuickUnionFindResult {
+  let i = start;
+  let accesses = 0;
+  while (true) {
+    const parentForCondition = values[i]!;
+    accesses += 1;
+    onAccess?.({ i, next: parentForCondition, accessType: "condition" });
+    if (i === parentForCondition) {
+      return { root: i, accesses };
+    }
+    const parentForAdvance = values[i]!;
+    accesses += 1;
+    onAccess?.({ i, next: parentForAdvance, accessType: "advance" });
+    i = parentForAdvance;
+  }
+}
+
+/**
+ * One animation step per `union()` (plus init and Finished) for Exercise 2 quick-union.
+ * Edges come from parent pointers (`i -> id[i]`) to show the actual tree structure per step.
+ */
+function buildQuickUnionTrace(): MockStep[] {
+  const trace: MockStep[] = [];
+  const initial = QUICK_UNION_STEP_INPUTS[0]!.before;
+  const unionDefLine = findQuickUnionUnionDefOneBasedLine();
+
+  trace.push({
+    line: 1,
+    variables: {
+      operation: "init",
+      id_before: formatIdArray(initial),
+      id_after: formatIdArray(initial),
+      array_accesses: "0",
+      root_p: "--",
+      root_q: "--",
+    },
+    consoleAppend: [
+      "Exercise 2: Analysis of quick-union",
+      "Initial id[]: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]",
+    ],
+    viz: {
+      kind: "dsuGraph",
+      caption: "Initialize id[] = [0..9]",
+      values: initial,
+      highlightIndices: [],
+      nodes: buildDsuNodes(initial),
+      edges: buildQuickUnionTreeEdges(initial),
+    },
+  });
+
+  for (const unionStep of QUICK_UNION_STEP_INPUTS) {
+    const { p, q } = parseUnionOperation(unionStep.op);
+    const idBefore = [...unionStep.before];
+    const idAfter = [...unionStep.after];
+    const rootP = runQuickUnionFind(idBefore, p).root;
+    const rootQ = runQuickUnionFind(idBefore, q).root;
+    const accesses = runQuickUnionFind(idBefore, p).accesses + runQuickUnionFind(idBefore, q).accesses + 1;
+
+    if (accesses !== unionStep.accesses) {
+      throw new Error(
+        `Quick-union access mismatch for ${unionStep.op}: got ${accesses}, expected ${unionStep.accesses}`
+      );
+    }
+    if (formatIdArray(idAfter) !== formatIdArray(unionStep.after)) {
+      throw new Error(`Quick-union state mismatch for ${unionStep.op}`);
+    }
+
+    trace.push({
+      line: unionDefLine,
+      variables: {
+        operation: unionStep.op,
+        p: String(p),
+        q: String(q),
+        i: String(rootP),
+        j: String(rootQ),
+        root_p: String(rootP),
+        root_q: String(rootQ),
+        id_before: formatIdArray(idBefore),
+        id_after: formatIdArray(idAfter),
+        array_accesses: String(accesses),
+      },
+      consoleAppend: [
+        `${unionStep.op}: accesses=${accesses}`,
+        `id[] -> ${formatIdArray(idAfter)}`,
+      ],
+      viz: {
+        kind: "dsuGraph",
+        caption: quickUnionCaptionUnion(unionStep.op),
+        values: [...idAfter],
+        highlightIndices: [p, q, rootP, rootQ],
+        nodes: buildDsuNodes(idAfter),
+        edges: buildQuickUnionTreeEdges(idAfter),
+        activeEdge: rootP === rootQ ? undefined : { from: rootP, to: rootQ },
+      },
+    });
+  }
+
+  const finalValues = QUICK_UNION_STEP_INPUTS[QUICK_UNION_STEP_INPUTS.length - 1]!.after;
+  trace.push({
+    line: 19,
+    variables: {
+      operation: "finished",
+      p: "--",
+      q: "--",
+      i: "--",
+      j: "--",
+      root_p: "--",
+      root_q: "--",
+      id_before: formatIdArray(finalValues),
+      id_after: formatIdArray(finalValues),
+      array_accesses: "0",
+    },
+    viz: {
+      kind: "dsuGraph",
+      caption: "Finished",
+      values: [...finalValues],
+      highlightIndices: [],
+      nodes: buildDsuNodes(finalValues),
+      edges: buildQuickUnionTreeEdges(finalValues),
+      uniformEdgeColor: true,
+    },
+  });
+
+  return trace;
+}
+
+/** Line-by-line trace inside `QuickUnionUF.union` and `QuickUnionUF.find`. */
+function buildQuickUnionFullTrace(): MockStep[] {
+  const trace: MockStep[] = [];
+  const initial = QUICK_UNION_STEP_INPUTS[0]!.before;
+  const findDefLine = findQuickUnionFindDefOneBasedLine();
+  const unionDefLine = findQuickUnionUnionDefOneBasedLine();
+  const findWhileLine = findDefLine + 1;
+  const findAdvanceLine = findDefLine + 2;
+  const findReturnLine = findDefLine + 3;
+  const unionFindPLine = unionDefLine + 1;
+  const unionFindQLine = unionDefLine + 2;
+  const unionAssignLine = unionDefLine + 3;
+
+  trace.push({
+    line: 1,
+    variables: {
+      operation: "init",
+      id_before: formatIdArray(initial),
+      id_after: formatIdArray(initial),
+      array_accesses: "0",
+      find_target: "--",
+      find_i: "--",
+      root_p: "--",
+      root_q: "--",
+    },
+    consoleAppend: [
+      "Exercise 2: Analysis of quick-union",
+      "Initial id[]: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]",
+    ],
+    viz: {
+      kind: "dsuGraph",
+      caption: "Initialize id[] = [0..9]",
+      values: initial,
+      highlightIndices: [],
+      nodes: buildDsuNodes(initial),
+      edges: buildQuickUnionTreeEdges(initial),
+    },
+  });
+
+  for (const unionStep of QUICK_UNION_STEP_INPUTS) {
+    const { p, q } = parseUnionOperation(unionStep.op);
+    const running = [...unionStep.before];
+    const idBefore = [...unionStep.before];
+    let accesses = 0;
+    let rootP = p;
+    let rootQ = q;
+
+    const pushStep = (args: {
+      line: number;
+      caption: string;
+      highlightIndices: number[];
+      findTarget?: number;
+      findI?: number;
+      iValue?: string;
+      jValue?: string;
+      consoleAppend?: string[];
+    }) => {
+      trace.push({
+        line: args.line,
+        variables: {
+          operation: unionStep.op,
+          p: String(p),
+          q: String(q),
+          i: args.iValue ?? (rootP === undefined ? "--" : String(rootP)),
+          j: args.jValue ?? (rootQ === undefined ? "--" : String(rootQ)),
+          root_p: String(rootP),
+          root_q: String(rootQ),
+          find_target: args.findTarget === undefined ? "--" : String(args.findTarget),
+          find_i: args.findI === undefined ? "--" : String(args.findI),
+          id_before: formatIdArray(idBefore),
+          id_after: formatIdArray(running),
+          array_accesses: String(accesses),
+        },
+        consoleAppend: args.consoleAppend,
+        viz: {
+          kind: "dsuGraph",
+          caption: args.caption,
+          values: [...running],
+          highlightIndices: args.highlightIndices,
+          nodes: buildDsuNodes(running),
+          edges: buildQuickUnionTreeEdges(running),
+        },
+      });
+    };
+
+    pushStep({
+      line: unionDefLine,
+      caption: `${quickUnionCaptionUnion(unionStep.op)}: enter union(p, q)`,
+      highlightIndices: [p, q],
+      iValue: "--",
+      jValue: "--",
+    });
+
+    pushStep({
+      line: unionFindPLine,
+      caption: `${quickUnionCaptionUnion(unionStep.op)}: call find(p)`,
+      highlightIndices: [p],
+      iValue: "--",
+      jValue: "--",
+    });
+
+    runQuickUnionFind(running, p, ({ i, next, accessType }) => {
+      accesses += 1;
+      if (accessType === "condition") {
+        pushStep({
+          line: findWhileLine,
+          caption:
+            i === next
+              ? `${quickUnionCaptionUnion(unionStep.op)}: find(${p}) stop at root ${i}`
+              : `${quickUnionCaptionUnion(unionStep.op)}: find(${p}) check i=${i} != id[i]=${next}`,
+          highlightIndices: [i],
+          findTarget: p,
+          findI: i,
+          iValue: "--",
+          jValue: "--",
+        });
+      } else {
+        pushStep({
+          line: findAdvanceLine,
+          caption: `${quickUnionCaptionUnion(unionStep.op)}: find(${p}) move i <- id[i] (${next})`,
+          highlightIndices: [i, next],
+          findTarget: p,
+          findI: next,
+          iValue: "--",
+          jValue: "--",
+        });
+      }
+    });
+    rootP = runQuickUnionFind(running, p).root;
+    pushStep({
+      line: findReturnLine,
+      caption: `${quickUnionCaptionUnion(unionStep.op)}: find(${p}) returns ${rootP}`,
+      highlightIndices: [rootP],
+      findTarget: p,
+      findI: rootP,
+      iValue: String(rootP),
+      jValue: "--",
+    });
+
+    pushStep({
+      line: unionFindQLine,
+      caption: `${quickUnionCaptionUnion(unionStep.op)}: call find(q)`,
+      highlightIndices: [q],
+      findTarget: q,
+      findI: q,
+      iValue: String(rootP),
+      jValue: "--",
+    });
+
+    runQuickUnionFind(running, q, ({ i, next, accessType }) => {
+      accesses += 1;
+      if (accessType === "condition") {
+        pushStep({
+          line: findWhileLine,
+          caption:
+            i === next
+              ? `${quickUnionCaptionUnion(unionStep.op)}: find(${q}) stop at root ${i}`
+              : `${quickUnionCaptionUnion(unionStep.op)}: find(${q}) check i=${i} != id[i]=${next}`,
+          highlightIndices: [i],
+          findTarget: q,
+          findI: i,
+          iValue: String(rootP),
+          jValue: "--",
+        });
+      } else {
+        pushStep({
+          line: findAdvanceLine,
+          caption: `${quickUnionCaptionUnion(unionStep.op)}: find(${q}) move i <- id[i] (${next})`,
+          highlightIndices: [i, next],
+          findTarget: q,
+          findI: next,
+          iValue: String(rootP),
+          jValue: "--",
+        });
+      }
+    });
+    rootQ = runQuickUnionFind(running, q).root;
+    pushStep({
+      line: findReturnLine,
+      caption: `${quickUnionCaptionUnion(unionStep.op)}: find(${q}) returns ${rootQ}`,
+      highlightIndices: [rootQ],
+      findTarget: q,
+      findI: rootQ,
+      iValue: String(rootP),
+      jValue: String(rootQ),
+    });
+
+    running[rootP] = rootQ;
+    accesses += 1;
+    pushStep({
+      line: unionAssignLine,
+      caption: `${quickUnionCaptionUnion(unionStep.op)}: set id[${rootP}] = ${rootQ}`,
+      highlightIndices: [rootP, rootQ],
+      iValue: String(rootP),
+      jValue: String(rootQ),
+      consoleAppend: [
+        `${unionStep.op}: accesses=${accesses}`,
+        `id[] -> ${formatIdArray(running)}`,
+      ],
+    });
+
+    if (accesses !== unionStep.accesses) {
+      throw new Error(
+        `Quick-union full access mismatch for ${unionStep.op}: got ${accesses}, expected ${unionStep.accesses}`
+      );
+    }
+    if (formatIdArray(running) !== formatIdArray(unionStep.after)) {
+      throw new Error(`Quick-union full state mismatch for ${unionStep.op}`);
+    }
+  }
+
+  const finalValues = QUICK_UNION_STEP_INPUTS[QUICK_UNION_STEP_INPUTS.length - 1]!.after;
+  trace.push({
+    line: unionDefLine + 4,
+    variables: {
+      operation: "finished",
+      p: "--",
+      q: "--",
+      i: "--",
+      j: "--",
+      root_p: "--",
+      root_q: "--",
+      find_target: "--",
+      find_i: "--",
+      id_before: formatIdArray(finalValues),
+      id_after: formatIdArray(finalValues),
+      array_accesses: "0",
+    },
+    viz: {
+      kind: "dsuGraph",
+      caption: "Finished",
+      values: [...finalValues],
+      highlightIndices: [],
+      nodes: buildDsuNodes(finalValues),
+      edges: buildQuickUnionTreeEdges(finalValues),
+      uniformEdgeColor: true,
+    },
+  });
+
+  return trace;
+}
+
+export const quickUnionTrace: MockStep[] = buildQuickUnionTrace();
+export const quickUnionFullTrace: MockStep[] = buildQuickUnionFullTrace();
+
 export type AlgorithmDemo = {
   source: string;
   trace: MockStep[];
@@ -1318,6 +1828,16 @@ export const ALGORITHM_DEMOS = {
   "quick-find-full": {
     source: QUICK_FIND_SOURCE,
     trace: quickFindFullTrace,
+    loopPulseRules: [],
+  },
+  "quick-union": {
+    source: QUICK_UNION_SOURCE,
+    trace: quickUnionTrace,
+    loopPulseRules: [],
+  },
+  "quick-union-full": {
+    source: QUICK_UNION_SOURCE,
+    trace: quickUnionFullTrace,
     loopPulseRules: [],
   },
 } satisfies Record<string, AlgorithmDemo>;

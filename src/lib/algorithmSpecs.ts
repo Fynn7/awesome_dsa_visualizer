@@ -89,6 +89,30 @@ const ALGORITHM_SPECS: Record<AlgorithmId, AlgorithmSpec> = {
       envelopeTraceIds: SINGLE_TRACE_ENVELOPE_IDS,
     },
   },
+  "quick-union": {
+    id: "quick-union",
+    title: "Quick Union",
+    searchBlob:
+      "exercise 2 quick union union-find dsu id array accesses union steps per union tree structure coarse",
+    visual: {
+      inferJMinus1FromHighlights: false,
+      getSortedExclusiveEnd: () => undefined,
+      isJInactivePhase: noJInactivePhase,
+      envelopeTraceIds: SINGLE_TRACE_ENVELOPE_IDS,
+    },
+  },
+  "quick-union-full": {
+    id: "quick-union-full",
+    title: "Quick Union - Full",
+    searchBlob:
+      "exercise 2 quick union full line by line union-find dsu id array accesses tree structure fine grained",
+    visual: {
+      inferJMinus1FromHighlights: false,
+      getSortedExclusiveEnd: () => undefined,
+      isJInactivePhase: noJInactivePhase,
+      envelopeTraceIds: SINGLE_TRACE_ENVELOPE_IDS,
+    },
+  },
 };
 
 export type AlgorithmEnvelopeTrace = {
