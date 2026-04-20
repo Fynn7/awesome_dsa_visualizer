@@ -9,7 +9,7 @@ export type PaletteItem = {
   title: string;
   /** Lowercase searchable aliases in addition to the display title. */
   searchBlob: string;
-  iconKey?: AlgorithmIconKey;
+  iconKey: AlgorithmIconKey;
 };
 
 const PALETTE_ITEMS: PaletteItem[] = getAlgorithmSpecs().map((spec) => ({

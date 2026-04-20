@@ -1,46 +1,43 @@
-import { AlignEndHorizontal, PackageSearch, SquaresUnite } from "lucide-react";
+import {
+  AlignEndHorizontal,
+  PackageSearch,
+  SquaresUnite,
+  type LucideIcon,
+} from "lucide-react";
 import type { AlgorithmIconKey } from "../lib/algorithmSpecs";
 
 type Props = {
-  iconKey?: AlgorithmIconKey;
+  iconKey: AlgorithmIconKey;
 };
 
+function assertNever(value: never): never {
+  throw new Error(`Unhandled algorithm icon key: ${String(value)}`);
+}
+
+function resolveIcon(iconKey: AlgorithmIconKey): LucideIcon {
+  switch (iconKey) {
+    case "sort":
+      return AlignEndHorizontal;
+    case "quickUnion":
+    case "quickUnionFull":
+      return SquaresUnite;
+    case "quickFind":
+    case "quickFindFull":
+      return PackageSearch;
+    default:
+      return assertNever(iconKey);
+  }
+}
+
 export function AlgorithmTypeIcon({ iconKey }: Props) {
-  if (!iconKey) {
-    return null;
-  }
+  const className = `command-palette-row-type-icon${
+    iconKey.endsWith("Full") ? " command-palette-row-type-icon--accent" : ""
+  }`;
+  const Icon = resolveIcon(iconKey);
 
-  if (iconKey === "sort") {
-    return (
-      <span className="command-palette-row-type-icon" aria-hidden>
-        <AlignEndHorizontal size={15} strokeWidth={2} />
-      </span>
-    );
-  }
-
-  if (iconKey === "quickUnion" || iconKey === "quickUnionFull") {
-    const className =
-      iconKey === "quickUnionFull"
-        ? "command-palette-row-type-icon command-palette-row-type-icon--accent"
-        : "command-palette-row-type-icon";
-    return (
-      <span className={className} aria-hidden>
-        <SquaresUnite size={15} strokeWidth={2} />
-      </span>
-    );
-  }
-
-  if (iconKey === "quickFind" || iconKey === "quickFindFull") {
-    const className =
-      iconKey === "quickFindFull"
-        ? "command-palette-row-type-icon command-palette-row-type-icon--accent"
-        : "command-palette-row-type-icon";
-    return (
-      <span className={className} aria-hidden>
-        <PackageSearch size={15} strokeWidth={2} />
-      </span>
-    );
-  }
-
-  return null;
+  return (
+    <span className={className} aria-hidden>
+      <Icon size={15} strokeWidth={2} />
+    </span>
+  );
 }

@@ -37,7 +37,7 @@ export type AlgorithmSpec = {
   title: string;
   /** Lowercase searchable aliases in addition to the display title. */
   searchBlob: string;
-  iconKey?: AlgorithmIconKey;
+  iconKey: AlgorithmIconKey;
   visual: AlgorithmVisualSpec;
 };
 

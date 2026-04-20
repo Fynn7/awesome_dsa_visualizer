@@ -58,23 +58,23 @@ A browser-based visualization tool for teaching university-level data structures
 > Node.js 20+ is required (router dependencies declare `engines.node >= 20.0.0`).
 
 1. **Install dependencies**
-  ```bash
+   ```bash
    npm install
    # or
    pnpm install
    # or
    yarn install
-  ```
+   ```
 2. **Start the development server**
-  ```bash
+   ```bash
    npm run dev
    # or the equivalent script for your package manager
-  ```
+   ```
 3. **Open the app**
-  - Visit `http://localhost:5173` (or whatever port your dev server reports) in a modern desktop browser.
-  - At `/`, use the search input to pick a demo and enter the visualizer at `/app`.
-  - You can also open `/app` directly to enter the full workspace.
-  - **Development only**: open `/app?crash=1` to intentionally render the route error recovery screen (remove the query to continue).
+   - Visit `http://localhost:5173` (or whatever port your dev server reports) in a modern desktop browser.
+   - At `/`, use the search input to pick a demo and enter the visualizer at `/app`.
+   - You can also open `/app` directly to enter the full workspace.
+   - **Development only**: open `/app?crash=1` to intentionally render the route error recovery screen (remove the query to continue).
 
 ## Deployment (Vercel)
 
@@ -118,4 +118,4 @@ Developer maintenance note:
 
 `README.md` is the single source of truth for current entry flow and routing behavior.
 
-Code-line anchor policy (no hardcoded trace line numbers) is maintained in [`docs/line-anchor-spec.md`](docs/line-anchor-spec.md) as the authoritative engineering spec.
+Code-line anchor policy (no hardcoded trace line numbers) is maintained in [docs/line-anchor-spec.md](docs/line-anchor-spec.md) as the authoritative engineering spec.
