@@ -978,13 +978,12 @@ export function AnimationPanel({
   const isDsuGraph = viz.kind === "dsuGraph";
   const dsuViz = isDsuGraph ? (viz as MockDsuGraphViz) : null;
   const useQuickUnionTreeLayout = isQuickUnionAlgorithm(algorithmId);
+  const supportsDisplayConnections = isDsuGraph && !useQuickUnionTreeLayout;
   const dsuNodePositions = useMemo(() => {
     if (!dsuViz || !useQuickUnionTreeLayout) return null;
     return buildQuickUnionTreePositions(dsuViz.values);
   }, [dsuViz, useQuickUnionTreeLayout]);
-  const supportsDisplayConnections = isDsuGraph;
-  const showDsuConnections =
-    !supportsDisplayConnections || displayConnections;
+  const showDsuConnections = !supportsDisplayConnections || displayConnections;
   const vizAriaLabel = dsuViz ? buildDsuGraphAriaLabel(dsuViz) : ariaLabel;
   const fixedBundleStyle =
     !enableAnimationScroll && fitEnvelopeSize
