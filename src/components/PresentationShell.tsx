@@ -226,6 +226,10 @@ export const PresentationShell = forwardRef<HTMLDivElement, Props>(
             showArrayIndices={state.showArrayIndices}
             enableAnimationScroll={state.enableAnimationScroll}
             animationFitAllowUpscale={state.animationFitAllowUpscale}
+            displayConnections={state.displayConnections}
+            onDisplayConnectionsChange={(value) =>
+              dispatch({ type: "SET_DISPLAY_CONNECTIONS", value })
+            }
             speedMs={state.speedMs}
             isAutoPlayingStep={state.playing}
             stepPointerNavigation={stepPointerNavigation}

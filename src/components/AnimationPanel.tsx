@@ -122,6 +122,8 @@ type Props = {
   enableAnimationScroll: boolean;
   /** No-scroll fit mode: if false, fit never scales above 1 (intrinsic size cap). */
   animationFitAllowUpscale: boolean;
+  displayConnections: boolean;
+  onDisplayConnectionsChange?: (value: boolean) => void;
   speedMs: number;
   isAutoPlayingStep: boolean;
   onPresentNative?: () => void;
@@ -208,6 +210,8 @@ export function AnimationPanel({
   showArrayIndices,
   enableAnimationScroll,
   animationFitAllowUpscale,
+  displayConnections,
+  onDisplayConnectionsChange,
   speedMs,
   isAutoPlayingStep,
   onPresentNative,
@@ -836,6 +840,9 @@ export function AnimationPanel({
   );
   const isDsuGraph = viz.kind === "dsuGraph";
   const dsuViz = isDsuGraph ? (viz as MockDsuGraphViz) : null;
+  const supportsDisplayConnections = isDsuGraph;
+  const showDsuConnections =
+    !supportsDisplayConnections || displayConnections;
   const vizAriaLabel = dsuViz ? buildDsuGraphAriaLabel(dsuViz) : ariaLabel;
   const fixedBundleStyle =
     !enableAnimationScroll && fitEnvelopeSize
@@ -860,8 +867,25 @@ export function AnimationPanel({
     <div className="panel panel-full">
       <div className="panel-head">
         <span className="panel-head-title">{strings.panels.animation}</span>
-        {onPresentNative || onPresentOverlay ? (
+        {supportsDisplayConnections || onPresentNative || onPresentOverlay ? (
           <div className="panel-head-actions">
+            {supportsDisplayConnections ? (
+              <label className="panel-head-switch">
+                <input
+                  type="checkbox"
+                  className="panel-head-switch-input"
+                  checked={displayConnections}
+                  onChange={(e) => onDisplayConnectionsChange?.(e.target.checked)}
+                  aria-label={strings.panels.displayConnections}
+                />
+                <span className="panel-head-switch-track" aria-hidden>
+                  <span className="panel-head-switch-knob" />
+                </span>
+                <span className="panel-head-switch-label">
+                  {strings.panels.displayConnections}
+                </span>
+              </label>
+            ) : null}
             {onPresentNative ? (
               <button
                 type="button"
@@ -965,56 +989,58 @@ export function AnimationPanel({
                     >
                       {dsuViz ? (
                         <>
-                          <svg
-                            className="viz-dsu-edges"
-                            viewBox={`0 0 ${DSU_SVG_VIEW_WIDTH} ${DSU_SVG_VIEW_HEIGHT}`}
-                            preserveAspectRatio="xMidYMid meet"
-                            aria-hidden
-                          >
-                            {dsuViz.edges.map((edge, idx) => {
-                              const points = buildDsuOrthogonalPolylinePoints(
-                                edge.from,
-                                edge.to,
-                                undefined,
-                                {
-                                  row0LaneIndex: dsuRow0LaneIndex(
-                                    dsuViz.edges,
-                                    idx
-                                  ),
-                                  row1LongEdgeGutterY: dsuRow1LongEdgeGutterY(
-                                    dsuViz.edges,
-                                    idx
-                                  ),
-                                }
-                              );
-                              const isActive =
-                                dsuViz.activeEdge?.from === edge.from &&
-                                dsuViz.activeEdge?.to === edge.to;
-                              const isLong =
-                                dsuEdgeEuclideanLength(edge.from, edge.to) >
-                                DSU_LONG_EDGE_THRESHOLD_PX;
-                              const forceUniform = dsuViz.uniformEdgeColor === true;
-                              const edgeClass = [
-                                "viz-dsu-edge",
-                                !forceUniform && isActive
-                                  ? "viz-dsu-edge--active"
-                                  : "",
-                                !forceUniform && !isActive && isLong
-                                  ? "viz-dsu-edge--muted"
-                                  : "",
-                              ]
-                                .filter(Boolean)
-                                .join(" ");
-                              return (
-                                <path
-                                  key={`${edge.from}-${edge.to}-${idx}`}
-                                  d={dsuPointsToSmoothPathD(points)}
-                                  fill="none"
-                                  className={edgeClass}
-                                />
-                              );
-                            })}
-                          </svg>
+                          {showDsuConnections ? (
+                            <svg
+                              className="viz-dsu-edges"
+                              viewBox={`0 0 ${DSU_SVG_VIEW_WIDTH} ${DSU_SVG_VIEW_HEIGHT}`}
+                              preserveAspectRatio="xMidYMid meet"
+                              aria-hidden
+                            >
+                              {dsuViz.edges.map((edge, idx) => {
+                                const points = buildDsuOrthogonalPolylinePoints(
+                                  edge.from,
+                                  edge.to,
+                                  undefined,
+                                  {
+                                    row0LaneIndex: dsuRow0LaneIndex(
+                                      dsuViz.edges,
+                                      idx
+                                    ),
+                                    row1LongEdgeGutterY: dsuRow1LongEdgeGutterY(
+                                      dsuViz.edges,
+                                      idx
+                                    ),
+                                  }
+                                );
+                                const isActive =
+                                  dsuViz.activeEdge?.from === edge.from &&
+                                  dsuViz.activeEdge?.to === edge.to;
+                                const isLong =
+                                  dsuEdgeEuclideanLength(edge.from, edge.to) >
+                                  DSU_LONG_EDGE_THRESHOLD_PX;
+                                const forceUniform = dsuViz.uniformEdgeColor === true;
+                                const edgeClass = [
+                                  "viz-dsu-edge",
+                                  !forceUniform && isActive
+                                    ? "viz-dsu-edge--active"
+                                    : "",
+                                  !forceUniform && !isActive && isLong
+                                    ? "viz-dsu-edge--muted"
+                                    : "",
+                                ]
+                                  .filter(Boolean)
+                                  .join(" ");
+                                return (
+                                  <path
+                                    key={`${edge.from}-${edge.to}-${idx}`}
+                                    d={dsuPointsToSmoothPathD(points)}
+                                    fill="none"
+                                    className={edgeClass}
+                                  />
+                                );
+                              })}
+                            </svg>
+                          ) : null}
                           {dsuViz.nodes.map((node: DsuGraphNode) => (
                             <DsuNodeSlot
                               key={node.id}
@@ -1164,45 +1190,47 @@ export function AnimationPanel({
                 </p>
                 {step.kind === "dsuGraph" ? (
                   <div className="viz-dsu-graph" aria-hidden>
-                    <svg
-                      className="viz-dsu-edges"
-                      viewBox={`0 0 ${DSU_SVG_VIEW_WIDTH} ${DSU_SVG_VIEW_HEIGHT}`}
-                      preserveAspectRatio="xMidYMid meet"
-                    >
-                      {step.edges.map((edge, idx) => {
-                        const points = buildDsuOrthogonalPolylinePoints(
-                          edge.from,
-                          edge.to,
-                          undefined,
-                          {
-                            row0LaneIndex: dsuRow0LaneIndex(
-                              step.edges,
-                              idx
-                            ),
-                            row1LongEdgeGutterY: dsuRow1LongEdgeGutterY(
-                              step.edges,
-                              idx
-                            ),
-                          }
-                        );
-                        const isLong =
-                          dsuEdgeEuclideanLength(edge.from, edge.to) >
-                          DSU_LONG_EDGE_THRESHOLD_PX;
-                        const forceUniform = step.uniformEdgeColor === true;
-                        return (
-                          <path
-                            key={`${edge.from}-${edge.to}-${idx}`}
-                            d={dsuPointsToSmoothPathD(points)}
-                            fill="none"
-                            className={
-                              !forceUniform && isLong
-                                ? "viz-dsu-edge viz-dsu-edge--muted"
-                                : "viz-dsu-edge"
+                    {showDsuConnections ? (
+                      <svg
+                        className="viz-dsu-edges"
+                        viewBox={`0 0 ${DSU_SVG_VIEW_WIDTH} ${DSU_SVG_VIEW_HEIGHT}`}
+                        preserveAspectRatio="xMidYMid meet"
+                      >
+                        {step.edges.map((edge, idx) => {
+                          const points = buildDsuOrthogonalPolylinePoints(
+                            edge.from,
+                            edge.to,
+                            undefined,
+                            {
+                              row0LaneIndex: dsuRow0LaneIndex(
+                                step.edges,
+                                idx
+                              ),
+                              row1LongEdgeGutterY: dsuRow1LongEdgeGutterY(
+                                step.edges,
+                                idx
+                              ),
                             }
-                          />
-                        );
-                      })}
-                    </svg>
+                          );
+                          const isLong =
+                            dsuEdgeEuclideanLength(edge.from, edge.to) >
+                            DSU_LONG_EDGE_THRESHOLD_PX;
+                          const forceUniform = step.uniformEdgeColor === true;
+                          return (
+                            <path
+                              key={`${edge.from}-${edge.to}-${idx}`}
+                              d={dsuPointsToSmoothPathD(points)}
+                              fill="none"
+                              className={
+                                !forceUniform && isLong
+                                  ? "viz-dsu-edge viz-dsu-edge--muted"
+                                  : "viz-dsu-edge"
+                              }
+                            />
+                          );
+                        })}
+                      </svg>
+                    ) : null}
                     {step.nodes.map((node) => (
                       <DsuNodeSlot
                         key={node.id}

@@ -62,6 +62,7 @@ export const strings = {
     pdfPlaceholder: "PDF viewer (coming soon)",
     emptyConsole: "No output yet. Step or Play to run the demo.",
     noVariables: "No variables at this step.",
+    displayConnections: "Display connections",
   },
   toast: {
     codeDirty:
