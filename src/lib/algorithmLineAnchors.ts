@@ -156,7 +156,11 @@ export function resolveAlgorithmAnchorLine<Algo extends SourceAnchoredAlgorithmI
   algorithmId: Algo,
   anchor: AnchorKeyByAlgorithm[Algo]
 ): number {
-  return ALGORITHM_LINE_ANCHORS[algorithmId][anchor];
+  const anchors = ALGORITHM_LINE_ANCHORS[algorithmId] as Record<
+    AnchorKeyByAlgorithm[Algo],
+    number
+  >;
+  return anchors[anchor];
 }
 
 export function resolveAlgorithmAnchorOffset<

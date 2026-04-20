@@ -19,6 +19,10 @@ describe("quick union demos pre-union cue", () => {
     );
     expect(cueSteps).toHaveLength(unionCount);
     for (const step of cueSteps) {
+      expect(step.viz.kind).toBe("dsuGraph");
+      if (step.viz.kind !== "dsuGraph") {
+        continue;
+      }
       expect(step.viz.transitionEffect).toBe("pulse");
       expect(step.variables.array_accesses).toBe("0");
       expect(step.viz.caption).toContain("Watch these!");
@@ -34,6 +38,10 @@ describe("quick union demos pre-union cue", () => {
     );
     expect(cueSteps).toHaveLength(8);
     for (const step of cueSteps) {
+      expect(step.viz.kind).toBe("dsuGraph");
+      if (step.viz.kind !== "dsuGraph") {
+        continue;
+      }
       expect(step.viz.transitionEffect).toBe("pulse");
       expect(step.variables.array_accesses).toBe("0");
       expect(step.viz.caption).toContain("Watch these!");

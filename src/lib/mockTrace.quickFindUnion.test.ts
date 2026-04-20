@@ -65,6 +65,10 @@ describe("quick find union-step demo", () => {
     );
     expect(cueSteps).toHaveLength(8);
     for (const step of cueSteps) {
+      expect(step.viz.kind).toBe("dsuGraph");
+      if (step.viz.kind !== "dsuGraph") {
+        continue;
+      }
       expect(step.viz.transitionEffect).toBe("pulse");
       expect(step.consoleAppend).toBeUndefined();
       expect(step.variables.array_accesses).toBe("0");
