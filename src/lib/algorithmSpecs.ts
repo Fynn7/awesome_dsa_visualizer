@@ -79,7 +79,7 @@ const ALGORITHM_SPECS: Record<AlgorithmId, AlgorithmSpec> = {
   },
   "quick-find-full": {
     id: "quick-find-full",
-    title: "Quick Find - Full",
+    title: "Quick Find - Full Trace",
     searchBlob:
       "exercise 1 quick find full line by line union-find dsu id array accesses fine grained",
     visual: {
@@ -103,7 +103,7 @@ const ALGORITHM_SPECS: Record<AlgorithmId, AlgorithmSpec> = {
   },
   "quick-union-full": {
     id: "quick-union-full",
-    title: "Quick Union - Full",
+    title: "Quick Union - Full Trace",
     searchBlob:
       "exercise 2 quick union full line by line union-find dsu id array accesses tree structure fine grained",
     visual: {
