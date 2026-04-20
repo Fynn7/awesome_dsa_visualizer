@@ -1,6 +1,7 @@
 # DSA Visualizer: Current UI Design Draft (Concept Level)
 
 Entry flow and routing behavior are maintained in [`README.md`](../README.md) as the single source of truth. This document only summarizes UI structure and visual rules.
+Browser tab icon (favicon) setup and replacement rules are maintained in [`README.md`](../README.md#site-icon-favicon) as the single source of truth.
 Code-line anchoring policy (including no hardcoded trace line numbers) is maintained in [`line-anchor-spec.md`](./line-anchor-spec.md); this document references that spec instead of duplicating it.
 
 ## 1. Product Context and Language
