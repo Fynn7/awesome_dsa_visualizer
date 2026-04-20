@@ -1110,6 +1110,13 @@ function buildQuickFindTrace(): MockStep[] {
   const trace: MockStep[] = [];
   const edges: DsuGraphEdge[] = [];
   const initial = QUICK_FIND_STEP_INPUTS[0]!.before;
+  const unionDefLine = findQuickFindUnionDefOneBasedLine();
+  const unionPidLine = unionDefLine + 1;
+  const unionQidLine = unionDefLine + 2;
+  const unionForLine = unionDefLine + 3;
+  const unionIfLine = unionDefLine + 4;
+  const unionAssignLine = unionDefLine + 5;
+  const unionExitLine = unionDefLine + 3;
   trace.push({
     line: 1,
     variables: {
@@ -1183,7 +1190,7 @@ function buildQuickFindTrace(): MockStep[] {
     };
 
     pushStep({
-      line: 19,
+      line: unionDefLine,
       caption: `${quickFindCaptionUnion(unionStep.op)}: Watch these!`,
       highlightIndices: [p, q],
       transitionKind: "pre-union",
@@ -1191,28 +1198,28 @@ function buildQuickFindTrace(): MockStep[] {
     });
 
     pushStep({
-      line: 19,
+      line: unionDefLine,
       caption: `${quickFindCaptionUnion(unionStep.op)}: enter union(p, q)`,
       highlightIndices: [p, q],
     });
 
     accesses += 1;
     pushStep({
-      line: 20,
+      line: unionPidLine,
       caption: `${quickFindCaptionUnion(unionStep.op)}: read pid = id[p]`,
       highlightIndices: [p],
     });
 
     accesses += 1;
     pushStep({
-      line: 21,
+      line: unionQidLine,
       caption: `${quickFindCaptionUnion(unionStep.op)}: read qid = id[q]`,
       highlightIndices: [q],
     });
 
     for (let i = 0; i < running.length; i += 1) {
       pushStep({
-        line: 22,
+        line: unionForLine,
         caption: `${quickFindCaptionUnion(unionStep.op)}: scan i = ${i}`,
         highlightIndices: [i],
         i,
@@ -1224,7 +1231,7 @@ function buildQuickFindTrace(): MockStep[] {
         unionEdgeVisible = true;
       }
       pushStep({
-        line: 23,
+        line: unionIfLine,
         caption: matches
           ? `${quickFindCaptionUnion(unionStep.op)}: id[${i}] == pid (match)`
           : `${quickFindCaptionUnion(unionStep.op)}: id[${i}] != pid (skip)`,
@@ -1236,7 +1243,7 @@ function buildQuickFindTrace(): MockStep[] {
         running[i] = qid;
         accesses += 1;
         pushStep({
-          line: 24,
+          line: unionAssignLine,
           caption: `${quickFindCaptionUnion(unionStep.op)}: set id[${i}] = qid`,
           highlightIndices: [i, q],
           i,
@@ -1254,7 +1261,7 @@ function buildQuickFindTrace(): MockStep[] {
     }
 
     trace.push({
-      line: 22,
+      line: unionExitLine,
       variables: {
         operation: unionStep.op,
         p: String(p),
@@ -1286,7 +1293,7 @@ function buildQuickFindTrace(): MockStep[] {
 
   const finalValues = QUICK_FIND_STEP_INPUTS[QUICK_FIND_STEP_INPUTS.length - 1]!.after;
   trace.push({
-    line: 25,
+    line: unionDefLine + 6,
     variables: {
       operation: "finished",
       p: "--",

@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { getAlgorithmDemo, getAlgorithmIds } from "./mockTrace";
+import { QUICK_FIND_SOURCE, getAlgorithmDemo, getAlgorithmIds } from "./mockTrace";
+
+function getQuickFindUnionDefLine(): number {
+  const lines = QUICK_FIND_SOURCE.split("\n");
+  for (let i = 0; i < lines.length; i += 1) {
+    if (/^\s*def union\(self,\s*p,\s*q\)\s*:/.test(lines[i]!)) {
+      return i + 1;
+    }
+  }
+  throw new Error("QUICK_FIND_SOURCE: union definition line not found");
+}
 
 describe("quick find - full exercise demo", () => {
   it("is registered in algorithm ids", () => {
@@ -9,6 +19,7 @@ describe("quick find - full exercise demo", () => {
 
   it("uses dsuGraph sub-steps with line progression and running accesses", () => {
     const { trace } = getAlgorithmDemo("quick-find-full");
+    const unionDefLine = getQuickFindUnionDefLine();
     expect(trace.length).toBeGreaterThan(80);
 
     const first = trace[0]!;
@@ -22,33 +33,38 @@ describe("quick find - full exercise demo", () => {
       (step) => step.variables.operation === "union(9,0)"
     );
     expect(firstUnion).toBeDefined();
-    expect(firstUnion?.line).toBe(19);
+    expect(firstUnion?.line).toBe(unionDefLine);
   });
 
   it("draws the new union edge only after id[i] == pid matches (not during prior scans)", () => {
     const { trace } = getAlgorithmDemo("quick-find-full");
+    const unionDefLine = getQuickFindUnionDefLine();
+    const unionForLine = unionDefLine + 3;
+    const unionIfLine = unionDefLine + 4;
     const op = "union(9,0)";
     const enter = trace.find(
-      (s) => s.variables.operation === op && s.line === 19
+      (s) => s.variables.operation === op && s.line === unionDefLine
     );
     expect(enter?.viz.kind).toBe("dsuGraph");
     if (enter?.viz.kind === "dsuGraph") {
       expect(enter.viz.edges).toEqual([]);
       expect(enter.viz.activeEdge).toBeUndefined();
     }
-    const scanI8 = trace.find(
+    const scanI8ByDynamicLine = trace.find(
       (s) =>
-        s.variables.operation === op && s.line === 22 && s.variables.i === "8"
+        s.variables.operation === op &&
+        s.line === unionForLine &&
+        s.variables.i === "8"
     );
-    expect(scanI8?.viz.kind).toBe("dsuGraph");
-    if (scanI8?.viz.kind === "dsuGraph") {
-      expect(scanI8.viz.edges).toEqual([]);
-      expect(scanI8.viz.activeEdge).toBeUndefined();
+    expect(scanI8ByDynamicLine?.viz.kind).toBe("dsuGraph");
+    if (scanI8ByDynamicLine?.viz.kind === "dsuGraph") {
+      expect(scanI8ByDynamicLine.viz.edges).toEqual([]);
+      expect(scanI8ByDynamicLine.viz.activeEdge).toBeUndefined();
     }
     const firstMatch = trace.find(
       (s) =>
         s.variables.operation === op &&
-        s.line === 23 &&
+        s.line === unionIfLine &&
         s.variables.i === "9" &&
         s.viz.caption.includes("match")
     );
@@ -61,16 +77,22 @@ describe("quick find - full exercise demo", () => {
 
   it("covers multi-line execution inside union", () => {
     const { trace } = getAlgorithmDemo("quick-find-full");
+    const unionDefLine = getQuickFindUnionDefLine();
+    const expectedLines = [
+      unionDefLine,
+      unionDefLine + 1,
+      unionDefLine + 2,
+      unionDefLine + 3,
+      unionDefLine + 4,
+      unionDefLine + 5,
+    ];
     const unionSteps = trace.filter(
       (step) => step.variables.operation === "union(9,0)"
     );
     const lines = new Set(unionSteps.map((step) => step.line));
-    expect(lines.has(19)).toBe(true);
-    expect(lines.has(20)).toBe(true);
-    expect(lines.has(21)).toBe(true);
-    expect(lines.has(22)).toBe(true);
-    expect(lines.has(23)).toBe(true);
-    expect(lines.has(24)).toBe(true);
+    for (const line of expectedLines) {
+      expect(lines.has(line)).toBe(true);
+    }
   });
 
   it("matches official final accesses and id state per union", () => {
