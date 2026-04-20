@@ -3,6 +3,7 @@ import type { AlgorithmId } from "../lib/mockTrace";
 import { getFilteredPaletteItems, getTitleMatchIndices } from "../lib/commandPaletteItems";
 import { handleFocusTrapTab } from "../lib/focusTrap";
 import { strings } from "../strings";
+import { AlgorithmTypeIcon } from "./AlgorithmTypeIcon";
 
 type Props = {
   open: boolean;
@@ -196,6 +197,7 @@ export function CommandPalette({
                   onClick={() => pickAt(index)}
                   onMouseEnter={() => setActiveIndex(index)}
                 >
+                  <AlgorithmTypeIcon iconKey={item.iconKey} />
                   <CommandPaletteHighlightedTitle
                     title={item.title}
                     matchIndices={titleMatchIndices}

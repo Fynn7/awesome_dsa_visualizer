@@ -10,6 +10,7 @@ const insertionItem: PaletteItem = {
   id: "insertion",
   title: "Insertion sort",
   searchBlob: "sorting ins demo algorithm array stable online o n2",
+  iconKey: "sort",
 };
 
 function queryIds(query: string): string[] {
