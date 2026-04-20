@@ -1184,7 +1184,7 @@ function buildQuickFindTrace(): MockStep[] {
 
     pushStep({
       line: 19,
-      caption: `${quickFindCaptionUnion(unionStep.op)}: watch these two!`,
+      caption: `${quickFindCaptionUnion(unionStep.op)}: Watch these!`,
       highlightIndices: [p, q],
       transitionKind: "pre-union",
       transitionEffect: "pulse",
@@ -1371,7 +1371,7 @@ function buildQuickFindUnionTrace(): MockStep[] {
       },
       viz: {
         kind: "dsuGraph",
-        caption: `${quickFindCaptionUnion(unionStep.op)}: watch these two!`,
+        caption: `${quickFindCaptionUnion(unionStep.op)}: Watch these!`,
         values: [...idBefore],
         highlightIndices: [p, q],
         nodes: buildDsuNodes(idBefore),
@@ -1556,7 +1556,7 @@ function buildQuickUnionTrace(): MockStep[] {
       },
       viz: {
         kind: "dsuGraph",
-        caption: `${quickUnionCaptionUnion(unionStep.op)}: watch these two!`,
+        caption: `${quickUnionCaptionUnion(unionStep.op)}: Watch these!`,
         values: [...idBefore],
         highlightIndices: [p, q, rootP, rootQ],
         nodes: buildDsuNodes(idBefore),
@@ -1716,7 +1716,7 @@ function buildQuickUnionFullTrace(): MockStep[] {
 
     pushStep({
       line: unionDefLine,
-      caption: `${quickUnionCaptionUnion(unionStep.op)}: watch these two!`,
+      caption: `${quickUnionCaptionUnion(unionStep.op)}: Watch these!`,
       highlightIndices: [p, q],
       iValue: "--",
       jValue: "--",
