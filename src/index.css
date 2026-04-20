@@ -205,16 +205,11 @@ body {
   overflow-y: auto;
 }
 
-.home-search-list .command-palette-row {
-  position: relative;
-  padding-left: 3rem;
-}
-
 .home-search-list .command-palette-empty {
   padding-left: 3rem;
 }
 
-.home-search-row-type-icon {
+.command-palette-row-type-icon {
   position: absolute;
   left: 1rem;
   top: 50%;
@@ -223,6 +218,10 @@ body {
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
+}
+
+.command-palette-row-type-icon--accent {
+  color: var(--accent);
 }
 
 /* VS Code–style scrollbars (Firefox) */
@@ -422,13 +421,14 @@ button {
 }
 
 .command-palette-row {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
   width: 100%;
   margin: 0;
-  padding: 0.5rem 0.85rem;
+  padding: 0.5rem 0.85rem 0.5rem 3rem;
   border: none;
   background: transparent;
   color: var(--text);

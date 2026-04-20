@@ -19,6 +19,9 @@ A browser-based visualization tool for teaching university-level data structures
   - Includes **Quick Find** (a pre-union cue step plus one union-result step per `union()`) and **Quick Find - Full Trace** (line-by-step inside `union`, now also with a pre-union cue step) for *Exercise 1: Analysis of quick-find*; open via `/app?algorithm=quick-find` or `/app?algorithm=quick-find-full`.
   - Includes **Quick Union** (a pre-union cue step plus one union-result step per `union()`) and **Quick Union - Full Trace** (line-by-step inside `union` and `find`, now also with a pre-union cue step) for *Exercise 2: Analysis of quick-union*; open via `/app?algorithm=quick-union` or `/app?algorithm=quick-union-full`.
   - Search behavior and row highlighting reuse the same matching and UI style as the in-app command palette.
+  - Algorithm row type icons for `/` search and `Ctrl+Shift+P` command palette are driven by the same `algorithmSpecs` metadata (`iconKey`) to keep both entry points consistent.
+  - Quick Find rows use the `package-search` icon; the `Quick Find - Full Trace` row uses the same icon with accent theme color for stronger distinction.
+  - Quick Union rows use the `squares-unite` icon; the `Quick Union - Full Trace` row uses the same icon with accent theme color for stronger distinction.
   - Each query piece must fuzzy-match the item title before that item can appear in results.
   - Press `Enter` to open the top match, or choose a row with keyboard/mouse; both go to `/app`.
   - If there is no match, you stay on `/` and see the same empty-state copy used by command palette.

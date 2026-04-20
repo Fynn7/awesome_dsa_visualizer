@@ -1,4 +1,5 @@
 import type { AlgorithmId } from "./mockTrace";
+import type { AlgorithmIconKey } from "./algorithmSpecs";
 import { getAlgorithmSpecs } from "./algorithmSpecs";
 import type { FuzzyScore } from "./vscodeFuzzyScore";
 import { fuzzyScore, strictFuzzyScoreOptions } from "./vscodeFuzzyScore";
@@ -8,12 +9,14 @@ export type PaletteItem = {
   title: string;
   /** Lowercase searchable aliases in addition to the display title. */
   searchBlob: string;
+  iconKey?: AlgorithmIconKey;
 };
 
 const PALETTE_ITEMS: PaletteItem[] = getAlgorithmSpecs().map((spec) => ({
   id: spec.id,
   title: spec.title,
   searchBlob: spec.searchBlob,
+  iconKey: spec.iconKey,
 }));
 
 function getSearchCandidates(item: PaletteItem): string[] {

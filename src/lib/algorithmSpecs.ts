@@ -25,11 +25,19 @@ export type AlgorithmVisualSpec = {
   envelopeTraceIds: readonly AlgorithmId[];
 };
 
+export type AlgorithmIconKey =
+  | "sort"
+  | "quickFind"
+  | "quickFindFull"
+  | "quickUnion"
+  | "quickUnionFull";
+
 export type AlgorithmSpec = {
   id: AlgorithmId;
   title: string;
   /** Lowercase searchable aliases in addition to the display title. */
   searchBlob: string;
+  iconKey?: AlgorithmIconKey;
   visual: AlgorithmVisualSpec;
 };
 
@@ -42,6 +50,7 @@ const ALGORITHM_SPECS: Record<AlgorithmId, AlgorithmSpec> = {
     id: "insertion",
     title: "Insertion sort",
     searchBlob: "sorting ins demo algorithm array stable online o n2",
+    iconKey: "sort",
     visual: {
       inferJMinus1FromHighlights: true,
       getSortedExclusiveEnd: ({ stepLine, valuesLength }) => {
@@ -57,6 +66,7 @@ const ALGORITHM_SPECS: Record<AlgorithmId, AlgorithmSpec> = {
     id: "selection",
     title: "Selection sort",
     searchBlob: "sorting sel demo algorithm in-place o n2 minimum swap",
+    iconKey: "sort",
     visual: {
       inferJMinus1FromHighlights: false,
       getSortedExclusiveEnd: ({ stepLine, variables, valuesLength }) => {
@@ -73,6 +83,7 @@ const ALGORITHM_SPECS: Record<AlgorithmId, AlgorithmSpec> = {
     title: "Quick Find",
     searchBlob:
       "exercise 1 quick find union-find dsu id array accesses union steps per union coarse",
+    iconKey: "quickFind",
     visual: {
       inferJMinus1FromHighlights: false,
       getSortedExclusiveEnd: () => undefined,
@@ -85,6 +96,7 @@ const ALGORITHM_SPECS: Record<AlgorithmId, AlgorithmSpec> = {
     title: "Quick Find - Full Trace",
     searchBlob:
       "exercise 1 quick find full line by line union-find dsu id array accesses fine grained",
+    iconKey: "quickFindFull",
     visual: {
       inferJMinus1FromHighlights: false,
       getSortedExclusiveEnd: () => undefined,
@@ -97,6 +109,7 @@ const ALGORITHM_SPECS: Record<AlgorithmId, AlgorithmSpec> = {
     title: "Quick Union",
     searchBlob:
       "exercise 2 quick union union-find dsu id array accesses union steps per union tree structure coarse",
+    iconKey: "quickUnion",
     visual: {
       inferJMinus1FromHighlights: false,
       getSortedExclusiveEnd: () => undefined,
@@ -109,6 +122,7 @@ const ALGORITHM_SPECS: Record<AlgorithmId, AlgorithmSpec> = {
     title: "Quick Union - Full Trace",
     searchBlob:
       "exercise 2 quick union full line by line union-find dsu id array accesses tree structure fine grained",
+    iconKey: "quickUnionFull",
     visual: {
       inferJMinus1FromHighlights: false,
       getSortedExclusiveEnd: () => undefined,

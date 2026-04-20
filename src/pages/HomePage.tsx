@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { AlignEndHorizontal, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { AlgorithmId } from "../lib/mockTrace";
 import {
@@ -8,6 +8,7 @@ import {
 } from "../lib/commandPaletteItems";
 import { strings } from "../strings";
 import { BlockingLoadingOverlay } from "../components/LoadingState";
+import { AlgorithmTypeIcon } from "../components/AlgorithmTypeIcon";
 
 function HighlightedTitle({
   title,
@@ -152,8 +153,6 @@ export function HomePage() {
               filtered.map(({ item }, index) => {
                 const active = index === activeIndex;
                 const titleMatchIndices = getTitleMatchIndices(query, item);
-                const showSortIcon =
-                  item.id === "insertion" || item.id === "selection";
                 return (
                   <button
                     key={item.id}
@@ -167,11 +166,7 @@ export function HomePage() {
                     onClick={() => pickAt(index)}
                     onMouseEnter={() => setActiveIndex(index)}
                   >
-                    {showSortIcon ? (
-                      <span className="home-search-row-type-icon" aria-hidden>
-                        <AlignEndHorizontal size={15} strokeWidth={2} />
-                      </span>
-                    ) : null}
+                    <AlgorithmTypeIcon iconKey={item.iconKey} />
                     <HighlightedTitle
                       title={item.title}
                       matchIndices={titleMatchIndices}
