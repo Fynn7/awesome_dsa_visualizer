@@ -2,6 +2,7 @@ import { AppWindow, Maximize2 } from "lucide-react";
 import {
   getAlgorithmDemo,
   type AlgorithmId,
+  type DsuGraphEdge,
   type DsuGraphNode,
   type MockDsuGraphViz,
   type MockVizModel,
@@ -204,6 +205,9 @@ function isQuickUnionAlgorithm(algorithmId: AlgorithmId): boolean {
  */
 const QUICK_UNION_UNARY_TARGET_GAP_PX = DSU_NODE_RADIUS_PX * 3.1;
 const QUICK_UNION_UNARY_MIN_GAP_PX = DSU_NODE_RADIUS_PX * 2.45;
+const QUICK_UNION_TREE_HORIZONTAL_PADDING_PX = 26;
+const QUICK_UNION_TREE_TOP_PADDING_PX = 38;
+const QUICK_UNION_TREE_BOTTOM_PADDING_PX = 30;
 
 function buildQuickUnionTreePositions(values: readonly number[]): Map<number, DsuPoint> {
   const n = values.length;
@@ -250,13 +254,13 @@ function buildQuickUnionTreePositions(values: readonly number[]): Map<number, Ds
     totalUnits += calcWidth(root, 0);
   }
   const units = Math.max(totalUnits, 1);
-  const padX = 26;
+  const padX = QUICK_UNION_TREE_HORIZONTAL_PADDING_PX;
   const usableW = DSU_SVG_VIEW_WIDTH - padX * 2;
   const unitW = usableW / units;
 
   const depthLevels = Math.max(maxDepth + 1, 1);
-  const topY = 38;
-  const bottomY = DSU_SVG_VIEW_HEIGHT - 30;
+  const topY = QUICK_UNION_TREE_TOP_PADDING_PX;
+  const bottomY = DSU_SVG_VIEW_HEIGHT - QUICK_UNION_TREE_BOTTOM_PADDING_PX;
   const levelGap = depthLevels === 1 ? 0 : (bottomY - topY) / (depthLevels - 1);
   const positions = new Map<number, DsuPoint>();
 
@@ -337,6 +341,114 @@ function DsuNodeSlot({
         {node.group}
       </span>
     </div>
+  );
+}
+
+type DsuGraphRenderModel = {
+  nodes: readonly DsuGraphNode[];
+  edges: readonly DsuGraphEdge[];
+  uniformEdgeColor?: boolean;
+  activeEdge?: DsuGraphEdge;
+  highlightIndices?: readonly number[];
+};
+
+function dsuEdgeClassName(
+  forceUniform: boolean,
+  isActive: boolean,
+  isLong: boolean,
+  emphasizeActiveEdge: boolean
+): string {
+  if (forceUniform) return "viz-dsu-edge";
+  if (emphasizeActiveEdge && isActive) {
+    return "viz-dsu-edge viz-dsu-edge--active";
+  }
+  if (isLong) {
+    return "viz-dsu-edge viz-dsu-edge--muted";
+  }
+  return "viz-dsu-edge";
+}
+
+function DsuGraph({
+  viz,
+  nodePositions,
+  showConnections,
+  useQuickUnionTreeLayout,
+  emphasizeActiveEdge,
+  preUnionPulse,
+}: {
+  viz: DsuGraphRenderModel;
+  nodePositions?: Map<number, DsuPoint> | null;
+  showConnections: boolean;
+  useQuickUnionTreeLayout: boolean;
+  emphasizeActiveEdge: boolean;
+  preUnionPulse: boolean;
+}) {
+  const highlightedNodeIds = new Set(viz.highlightIndices ?? []);
+  return (
+    <>
+      {showConnections ? (
+        <svg
+          className="viz-dsu-edges"
+          viewBox={`0 0 ${DSU_SVG_VIEW_WIDTH} ${DSU_SVG_VIEW_HEIGHT}`}
+          preserveAspectRatio="xMidYMid meet"
+          aria-hidden
+        >
+          {viz.edges.map((edge, idx) => {
+            const fromPos =
+              nodePositions?.get(edge.from) ?? getDsuNodePosition(edge.from);
+            const toPos =
+              nodePositions?.get(edge.to) ?? getDsuNodePosition(edge.to);
+            const points = buildDsuOrthogonalPolylinePoints(
+              edge.from,
+              edge.to,
+              undefined,
+              {
+                row0LaneIndex: dsuRow0LaneIndex(viz.edges, idx),
+                row1LongEdgeGutterY: dsuRow1LongEdgeGutterY(viz.edges, idx),
+              }
+            );
+            const isActive =
+              viz.activeEdge?.from === edge.from &&
+              viz.activeEdge?.to === edge.to;
+            const isLong =
+              dsuEdgeEuclideanLength(edge.from, edge.to) >
+              DSU_LONG_EDGE_THRESHOLD_PX;
+            const forceUniform = viz.uniformEdgeColor === true;
+            const edgeClass = dsuEdgeClassName(
+              forceUniform,
+              isActive,
+              isLong,
+              emphasizeActiveEdge
+            );
+            return (
+              <path
+                key={`${edge.from}-${edge.to}-${idx}`}
+                d={
+                  useQuickUnionTreeLayout
+                    ? quickUnionEdgePath(fromPos, toPos)
+                    : dsuPointsToSmoothPathD(points)
+                }
+                fill="none"
+                className={edgeClass}
+              />
+            );
+          })}
+        </svg>
+      ) : null}
+      {viz.nodes.map((node) => {
+        const isHighlighted = highlightedNodeIds.has(node.id);
+        return (
+          <DsuNodeSlot
+            key={node.id}
+            node={node}
+            active={isHighlighted}
+            preUnionPulse={preUnionPulse && isHighlighted}
+            groupClass={dsuGroupClass(node.group)}
+            position={nodePositions?.get(node.id)}
+          />
+        );
+      })}
+    </>
   );
 }
 
@@ -1142,83 +1254,14 @@ export function AnimationPanel({
                       style={dsuViz ? dsuCueStyle : undefined}
                     >
                       {dsuViz ? (
-                        <>
-                          {showDsuConnections ? (
-                            <svg
-                              className="viz-dsu-edges"
-                              viewBox={`0 0 ${DSU_SVG_VIEW_WIDTH} ${DSU_SVG_VIEW_HEIGHT}`}
-                              preserveAspectRatio="xMidYMid meet"
-                              aria-hidden
-                            >
-                              {dsuViz.edges.map((edge, idx) => {
-                                const fromPos =
-                                  dsuNodePositions?.get(edge.from) ??
-                                  getDsuNodePosition(edge.from);
-                                const toPos =
-                                  dsuNodePositions?.get(edge.to) ??
-                                  getDsuNodePosition(edge.to);
-                                const points = buildDsuOrthogonalPolylinePoints(
-                                  edge.from,
-                                  edge.to,
-                                  undefined,
-                                  {
-                                    row0LaneIndex: dsuRow0LaneIndex(
-                                      dsuViz.edges,
-                                      idx
-                                    ),
-                                    row1LongEdgeGutterY: dsuRow1LongEdgeGutterY(
-                                      dsuViz.edges,
-                                      idx
-                                    ),
-                                  }
-                                );
-                                const isActive =
-                                  dsuViz.activeEdge?.from === edge.from &&
-                                  dsuViz.activeEdge?.to === edge.to;
-                                const isLong =
-                                  dsuEdgeEuclideanLength(edge.from, edge.to) >
-                                  DSU_LONG_EDGE_THRESHOLD_PX;
-                                const forceUniform = dsuViz.uniformEdgeColor === true;
-                                const edgeClass = [
-                                  "viz-dsu-edge",
-                                  !forceUniform && isActive
-                                    ? "viz-dsu-edge--active"
-                                    : "",
-                                  !forceUniform && !isActive && isLong
-                                    ? "viz-dsu-edge--muted"
-                                    : "",
-                                ]
-                                  .filter(Boolean)
-                                  .join(" ");
-                                return (
-                                  <path
-                                    key={`${edge.from}-${edge.to}-${idx}`}
-                                    d={
-                                      useQuickUnionTreeLayout
-                                        ? quickUnionEdgePath(fromPos, toPos)
-                                        : dsuPointsToSmoothPathD(points)
-                                    }
-                                    fill="none"
-                                    className={edgeClass}
-                                  />
-                                );
-                              })}
-                            </svg>
-                          ) : null}
-                          {dsuViz.nodes.map((node: DsuGraphNode) => (
-                            <DsuNodeSlot
-                              key={node.id}
-                              node={node}
-                              active={dsuViz.highlightIndices.includes(node.id)}
-                              preUnionPulse={
-                                isPreUnionCue &&
-                                dsuViz.highlightIndices.includes(node.id)
-                              }
-                              groupClass={dsuGroupClass(node.group)}
-                              position={dsuNodePositions?.get(node.id)}
-                            />
-                          ))}
-                        </>
+                        <DsuGraph
+                          viz={dsuViz}
+                          nodePositions={dsuNodePositions}
+                          showConnections={showDsuConnections}
+                          useQuickUnionTreeLayout={useQuickUnionTreeLayout}
+                          emphasizeActiveEdge={true}
+                          preUnionPulse={isPreUnionCue}
+                        />
                       ) : (
                         <>
                         <div className="viz-pointers-layer" aria-hidden>
@@ -1359,77 +1402,18 @@ export function AnimationPanel({
                 </p>
                 {step.kind === "dsuGraph" ? (
                   <div className="viz-dsu-graph" aria-hidden>
-                    {(() => {
-                      const treePositions = useQuickUnionTreeLayout
-                        ? buildQuickUnionTreePositions(step.values)
-                        : null;
-                      return (
-                        <>
-                          {showDsuConnections ? (
-                            <svg
-                              className="viz-dsu-edges"
-                              viewBox={`0 0 ${DSU_SVG_VIEW_WIDTH} ${DSU_SVG_VIEW_HEIGHT}`}
-                              preserveAspectRatio="xMidYMid meet"
-                            >
-                              {step.edges.map((edge, idx) => {
-                                const fromPos =
-                                  treePositions?.get(edge.from) ??
-                                  getDsuNodePosition(edge.from);
-                                const toPos =
-                                  treePositions?.get(edge.to) ??
-                                  getDsuNodePosition(edge.to);
-                                const points = buildDsuOrthogonalPolylinePoints(
-                                  edge.from,
-                                  edge.to,
-                                  undefined,
-                                  {
-                                    row0LaneIndex: dsuRow0LaneIndex(
-                                      step.edges,
-                                      idx
-                                    ),
-                                    row1LongEdgeGutterY: dsuRow1LongEdgeGutterY(
-                                      step.edges,
-                                      idx
-                                    ),
-                                  }
-                                );
-                                const isLong =
-                                  dsuEdgeEuclideanLength(edge.from, edge.to) >
-                                  DSU_LONG_EDGE_THRESHOLD_PX;
-                                const forceUniform =
-                                  step.uniformEdgeColor === true;
-                                return (
-                                  <path
-                                    key={`${edge.from}-${edge.to}-${idx}`}
-                                    d={
-                                      useQuickUnionTreeLayout
-                                        ? quickUnionEdgePath(fromPos, toPos)
-                                        : dsuPointsToSmoothPathD(points)
-                                    }
-                                    fill="none"
-                                    className={
-                                      !forceUniform && isLong
-                                        ? "viz-dsu-edge viz-dsu-edge--muted"
-                                        : "viz-dsu-edge"
-                                    }
-                                  />
-                                );
-                              })}
-                            </svg>
-                          ) : null}
-                          {step.nodes.map((node) => (
-                            <DsuNodeSlot
-                              key={node.id}
-                              node={node}
-                              active={false}
-                              preUnionPulse={false}
-                              groupClass={dsuGroupClass(node.group)}
-                              position={treePositions?.get(node.id)}
-                            />
-                          ))}
-                        </>
-                      );
-                    })()}
+                    <DsuGraph
+                      viz={step}
+                      nodePositions={
+                        useQuickUnionTreeLayout
+                          ? buildQuickUnionTreePositions(step.values)
+                          : null
+                      }
+                      showConnections={showDsuConnections}
+                      useQuickUnionTreeLayout={useQuickUnionTreeLayout}
+                      emphasizeActiveEdge={false}
+                      preUnionPulse={false}
+                    />
                   </div>
                 ) : (
                   <div className="viz-bars" aria-hidden>
