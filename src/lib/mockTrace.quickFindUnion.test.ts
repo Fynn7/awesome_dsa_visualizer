@@ -10,13 +10,16 @@ describe("quick find union-step demo", () => {
   it("has one step per union plus init and Finished", () => {
     const { trace } = getAlgorithmDemo("quick-find");
     const unionCount = 8;
-    expect(trace.length).toBe(1 + unionCount + 1);
+    expect(trace.length).toBe(1 + unionCount * 2 + 1);
   });
 
   it("uses short union-only captions (no complete/accesses suffix)", () => {
     const { trace } = getAlgorithmDemo("quick-find");
     const unionSteps = trace.filter(
-      (s) => s.variables.operation.startsWith("union(")
+      (s) =>
+        s.variables.operation.startsWith("union(") &&
+        s.viz.kind === "dsuGraph" &&
+        s.viz.transitionKind !== "pre-union"
     );
     for (const s of unionSteps) {
       expect(s.viz.kind).toBe("dsuGraph");
@@ -40,7 +43,10 @@ describe("quick find union-step demo", () => {
 
     const { trace } = getAlgorithmDemo("quick-find");
     const unionSteps = trace.filter(
-      (s) => s.variables.operation.startsWith("union(")
+      (s) =>
+        s.variables.operation.startsWith("union(") &&
+        s.viz.kind === "dsuGraph" &&
+        s.viz.transitionKind !== "pre-union"
     );
     expect(unionSteps.length).toBe(8);
     for (const s of unionSteps) {
@@ -55,6 +61,21 @@ describe("quick find union-step demo", () => {
       for (const line of step.consoleAppend) {
         expect(line).not.toMatch(/scan i =/);
       }
+    }
+  });
+
+  it("adds one pre-union cue step before each union step", () => {
+    const { trace } = getAlgorithmDemo("quick-find");
+    const cueSteps = trace.filter(
+      (step) =>
+        step.viz.kind === "dsuGraph" && step.viz.transitionKind === "pre-union"
+    );
+    expect(cueSteps).toHaveLength(8);
+    for (const step of cueSteps) {
+      expect(step.viz.transitionEffect).toBe("pulse");
+      expect(step.consoleAppend).toBeUndefined();
+      expect(step.variables.array_accesses).toBe("0");
+      expect(step.viz.caption).toContain("watch these two");
     }
   });
 

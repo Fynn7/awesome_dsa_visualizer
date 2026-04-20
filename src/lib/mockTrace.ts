@@ -33,6 +33,10 @@ export type MockDsuGraphViz = {
   activeEdge?: DsuGraphEdge;
   /** When true, render all DSU edges with the same base tone (no active/muted variants). */
   uniformEdgeColor?: boolean;
+  /** Marks a pre-union cue frame before the actual union step. */
+  transitionKind?: "pre-union";
+  /** Visual emphasis used for transitionKind frames. */
+  transitionEffect?: "pulse" | "highlight";
 };
 
 export type MockVizModel = MockViz | MockDsuGraphViz;
@@ -1146,6 +1150,8 @@ function buildQuickFindTrace(): MockStep[] {
       highlightIndices: number[];
       i?: number;
       consoleAppend?: string[];
+      transitionKind?: "pre-union";
+      transitionEffect?: "pulse" | "highlight";
     }) => {
       const vizEdges = unionEdgeVisible ? unionEdges : [...edges];
       trace.push({
@@ -1170,9 +1176,19 @@ function buildQuickFindTrace(): MockStep[] {
           nodes: buildDsuNodes(running),
           edges: vizEdges,
           activeEdge: unionEdgeVisible ? unionStep.edge : undefined,
+          transitionKind: args.transitionKind,
+          transitionEffect: args.transitionEffect,
         },
       });
     };
+
+    pushStep({
+      line: 19,
+      caption: `${quickFindCaptionUnion(unionStep.op)}: watch these two!`,
+      highlightIndices: [p, q],
+      transitionKind: "pre-union",
+      transitionEffect: "pulse",
+    });
 
     pushStep({
       line: 19,
@@ -1350,6 +1366,31 @@ function buildQuickFindUnionTrace(): MockStep[] {
         qid: String(qid),
         i: "--",
         id_before: formatIdArray(idBefore),
+        id_after: formatIdArray(idBefore),
+        array_accesses: "0",
+      },
+      viz: {
+        kind: "dsuGraph",
+        caption: `${quickFindCaptionUnion(unionStep.op)}: watch these two!`,
+        values: [...idBefore],
+        highlightIndices: [p, q],
+        nodes: buildDsuNodes(idBefore),
+        edges: [...edges],
+        transitionKind: "pre-union",
+        transitionEffect: "pulse",
+      },
+    });
+
+    trace.push({
+      line: unionDefLine,
+      variables: {
+        operation: unionStep.op,
+        p: String(p),
+        q: String(q),
+        pid: String(pid),
+        qid: String(qid),
+        i: "--",
+        id_before: formatIdArray(idBefore),
         id_after: formatIdArray(running),
         array_accesses: String(accesses),
       },
@@ -1510,6 +1551,32 @@ function buildQuickUnionTrace(): MockStep[] {
         root_p: String(rootP),
         root_q: String(rootQ),
         id_before: formatIdArray(idBefore),
+        id_after: formatIdArray(idBefore),
+        array_accesses: "0",
+      },
+      viz: {
+        kind: "dsuGraph",
+        caption: `${quickUnionCaptionUnion(unionStep.op)}: watch these two!`,
+        values: [...idBefore],
+        highlightIndices: [p, q, rootP, rootQ],
+        nodes: buildDsuNodes(idBefore),
+        edges: buildQuickUnionTreeEdges(idBefore),
+        transitionKind: "pre-union",
+        transitionEffect: "pulse",
+      },
+    });
+
+    trace.push({
+      line: unionDefLine,
+      variables: {
+        operation: unionStep.op,
+        p: String(p),
+        q: String(q),
+        i: String(rootP),
+        j: String(rootQ),
+        root_p: String(rootP),
+        root_q: String(rootQ),
+        id_before: formatIdArray(idBefore),
         id_after: formatIdArray(idAfter),
         array_accesses: String(accesses),
       },
@@ -1614,6 +1681,8 @@ function buildQuickUnionFullTrace(): MockStep[] {
       iValue?: string;
       jValue?: string;
       consoleAppend?: string[];
+      transitionKind?: "pre-union";
+      transitionEffect?: "pulse" | "highlight";
     }) => {
       trace.push({
         line: args.line,
@@ -1639,9 +1708,21 @@ function buildQuickUnionFullTrace(): MockStep[] {
           highlightIndices: args.highlightIndices,
           nodes: buildDsuNodes(running),
           edges: buildQuickUnionTreeEdges(running),
+          transitionKind: args.transitionKind,
+          transitionEffect: args.transitionEffect,
         },
       });
     };
+
+    pushStep({
+      line: unionDefLine,
+      caption: `${quickUnionCaptionUnion(unionStep.op)}: watch these two!`,
+      highlightIndices: [p, q],
+      iValue: "--",
+      jValue: "--",
+      transitionKind: "pre-union",
+      transitionEffect: "pulse",
+    });
 
     pushStep({
       line: unionDefLine,

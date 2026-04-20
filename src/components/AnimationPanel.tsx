@@ -96,7 +96,7 @@ import {
   splitCaptionByBackticks,
   stripCaptionBackticks,
 } from "@visualizer-ui";
-import type { MouseEvent } from "react";
+import type { CSSProperties, MouseEvent } from "react";
 import {
   useCallback,
   useEffect,
@@ -310,11 +310,13 @@ function buildQuickUnionTreePositions(values: readonly number[]): Map<number, Ds
 function DsuNodeSlot({
   node,
   active,
+  preUnionPulse,
   groupClass,
   position,
 }: {
   node: DsuGraphNode;
   active: boolean;
+  preUnionPulse: boolean;
   groupClass: string;
   position?: DsuPoint;
 }) {
@@ -325,7 +327,9 @@ function DsuNodeSlot({
       style={{ left: `${pos.x}px`, top: `${pos.y}px` }}
     >
       <div
-        className={`viz-dsu-node ${groupClass}${active ? " viz-dsu-node--active" : ""}`}
+        className={`viz-dsu-node ${groupClass}${active ? " viz-dsu-node--active" : ""}${
+          preUnionPulse ? " viz-dsu-node--pre-union-pulse" : ""
+        }`}
       >
         {node.id}
       </div>
@@ -977,6 +981,14 @@ export function AnimationPanel({
   );
   const isDsuGraph = viz.kind === "dsuGraph";
   const dsuViz = isDsuGraph ? (viz as MockDsuGraphViz) : null;
+  const isPreUnionCue =
+    dsuViz?.transitionKind === "pre-union" && dsuViz.transitionEffect === "pulse";
+  const preUnionCueDurationMs = Math.max(180, Math.round(flipDurationMs * 0.75));
+  const dsuCueStyle: CSSProperties | undefined = isPreUnionCue
+    ? ({
+        ["--viz-dsu-pre-union-duration" as "--viz-dsu-pre-union-duration"]: `${preUnionCueDurationMs}ms`,
+      } as CSSProperties)
+    : undefined;
   const useQuickUnionTreeLayout = isQuickUnionAlgorithm(algorithmId);
   const supportsDisplayConnections = isDsuGraph && !useQuickUnionTreeLayout;
   const dsuNodePositions = useMemo(() => {
@@ -1127,6 +1139,7 @@ export function AnimationPanel({
                       ref={barsTrackRef}
                       role="img"
                       aria-label={vizAriaLabel}
+                      style={dsuViz ? dsuCueStyle : undefined}
                     >
                       {dsuViz ? (
                         <>
@@ -1197,6 +1210,10 @@ export function AnimationPanel({
                               key={node.id}
                               node={node}
                               active={dsuViz.highlightIndices.includes(node.id)}
+                              preUnionPulse={
+                                isPreUnionCue &&
+                                dsuViz.highlightIndices.includes(node.id)
+                              }
                               groupClass={dsuGroupClass(node.group)}
                               position={dsuNodePositions?.get(node.id)}
                             />
@@ -1405,6 +1422,7 @@ export function AnimationPanel({
                               key={node.id}
                               node={node}
                               active={false}
+                              preUnionPulse={false}
                               groupClass={dsuGroupClass(node.group)}
                               position={treePositions?.get(node.id)}
                             />
