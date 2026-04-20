@@ -35,6 +35,7 @@ Note: all areas can be closed or hidden at any time.
 
 - Step-by-step code execution visualization. For example, inside a `for`/`while` loop, the tool should:
   - Highlight the currently executed line, while algorithm animation (such as insertion sort) advances to the exact same step.
+  - Code-line anchoring implementation rules (including no hardcoded trace line numbers) are specified in [`line-anchor-spec.md`](line-anchor-spec.md).
   - Provide a dedicated area for persistent variable tracking (similar to notebook variable inspection, but with clearer UI presentation).
   - ...
 - Optional: the code display area should be editable and stay synchronized with animation.

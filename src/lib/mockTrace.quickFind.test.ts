@@ -1,16 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { QUICK_FIND_SOURCE, getAlgorithmDemo, getAlgorithmIds } from "./mockTrace";
-
-function getQuickFindUnionDefLine(): number {
-  const lines = QUICK_FIND_SOURCE.split("\n");
-  for (let i = 0; i < lines.length; i += 1) {
-    if (/^\s*def union\(self,\s*p,\s*q\)\s*:/.test(lines[i]!)) {
-      return i + 1;
-    }
-  }
-  throw new Error("QUICK_FIND_SOURCE: union definition line not found");
-}
+import { resolveAlgorithmAnchorLine } from "./algorithmLineAnchors";
+import { getAlgorithmDemo, getAlgorithmIds } from "./mockTrace";
 
 describe("quick find - full exercise demo", () => {
   it("is registered in algorithm ids", () => {
@@ -19,7 +10,7 @@ describe("quick find - full exercise demo", () => {
 
   it("uses dsuGraph sub-steps with line progression and running accesses", () => {
     const { trace } = getAlgorithmDemo("quick-find-full");
-    const unionDefLine = getQuickFindUnionDefLine();
+    const unionDefLine = resolveAlgorithmAnchorLine("quick-find", "unionDef");
     expect(trace.length).toBeGreaterThan(80);
 
     const first = trace[0]!;
@@ -38,7 +29,7 @@ describe("quick find - full exercise demo", () => {
 
   it("draws the new union edge only after id[i] == pid matches (not during prior scans)", () => {
     const { trace } = getAlgorithmDemo("quick-find-full");
-    const unionDefLine = getQuickFindUnionDefLine();
+    const unionDefLine = resolveAlgorithmAnchorLine("quick-find", "unionDef");
     const unionForLine = unionDefLine + 3;
     const unionIfLine = unionDefLine + 4;
     const op = "union(9,0)";
@@ -77,7 +68,7 @@ describe("quick find - full exercise demo", () => {
 
   it("covers multi-line execution inside union", () => {
     const { trace } = getAlgorithmDemo("quick-find-full");
-    const unionDefLine = getQuickFindUnionDefLine();
+    const unionDefLine = resolveAlgorithmAnchorLine("quick-find", "unionDef");
     const expectedLines = [
       unionDefLine,
       unionDefLine + 1,

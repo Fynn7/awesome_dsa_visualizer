@@ -2,6 +2,17 @@
  * Mock execution trace - independent of a real Python runtime.
  * Line numbers are 1-based, matching the default editor document.
  */
+import {
+  resolveAlgorithmAnchorLine,
+  resolveAlgorithmAnchorOffset,
+  resolveLegacyBarSortLine,
+} from "./algorithmLineAnchors";
+import {
+  INSERTION_SORT_SOURCE,
+  QUICK_FIND_SOURCE,
+  QUICK_UNION_SOURCE,
+  SELECTION_SORT_SOURCE,
+} from "./algorithmSources";
 
 export type MockViz = {
   kind?: undefined;
@@ -72,41 +83,42 @@ export type LoopPulseRange = {
  */
 export const insertionSortLoopPulseRules: LoopPulseRestartRule[] = [
   {
-    bodyEndLine: 7,
-    headerLine: 9,
-    regionStartLine: 7,
-    regionEndLine: 7,
+    bodyEndLine: resolveLegacyBarSortLine("insertion", 7),
+    headerLine: resolveLegacyBarSortLine("insertion", 9),
+    regionStartLine: resolveLegacyBarSortLine("insertion", 7),
+    regionEndLine: resolveLegacyBarSortLine("insertion", 7),
     kind: "not-entered-if",
   },
   {
-    bodyEndLine: 8,
-    headerLine: 6,
-    regionStartLine: 6,
-    regionEndLine: 10,
+    bodyEndLine: resolveLegacyBarSortLine("insertion", 8),
+    headerLine: resolveLegacyBarSortLine("insertion", 6),
+    regionStartLine: resolveLegacyBarSortLine("insertion", 6),
+    regionEndLine: resolveLegacyBarSortLine("insertion", 10),
     kind: "restart",
   },
   {
-    bodyEndLine: 10,
-    headerLine: 5,
-    regionStartLine: 5,
-    regionEndLine: 10,
+    bodyEndLine: resolveLegacyBarSortLine("insertion", 10),
+    headerLine: resolveLegacyBarSortLine("insertion", 5),
+    regionStartLine: resolveLegacyBarSortLine("insertion", 5),
+    regionEndLine: resolveLegacyBarSortLine("insertion", 10),
     kind: "restart",
   },
   {
-    bodyEndLine: 8,
-    headerLine: 5,
-    regionStartLine: 5,
-    regionEndLine: 10,
+    bodyEndLine: resolveLegacyBarSortLine("insertion", 8),
+    headerLine: resolveLegacyBarSortLine("insertion", 5),
+    regionStartLine: resolveLegacyBarSortLine("insertion", 5),
+    regionEndLine: resolveLegacyBarSortLine("insertion", 10),
     kind: "restart",
   },
   {
-    bodyEndLine: 6,
-    headerLine: 5,
-    regionStartLine: 6,
-    regionEndLine: 6,
+    bodyEndLine: resolveLegacyBarSortLine("insertion", 6),
+    headerLine: resolveLegacyBarSortLine("insertion", 5),
+    regionStartLine: resolveLegacyBarSortLine("insertion", 6),
+    regionEndLine: resolveLegacyBarSortLine("insertion", 6),
     kind: "not-entered-loop",
   },
 ];
+
 
 export function getLoopPulseRange(
   trace: MockStep[],
@@ -128,156 +140,65 @@ export function getLoopPulseRange(
   return null;
 }
 
-export const INSERTION_SORT_SOURCE = `from DSA import intArray, exch
-
-def insertion_sort(arr):
-    N = len(arr)
-    for i in range(N):
-        for j in range(i, 0, -1):
-            if arr[j] < arr[j - 1]:
-                exch(arr, j, j - 1)
-            else:
-                break
-
-
-data = intArray(4)
-data[0] = 7
-data[1] = 3
-data[2] = 5
-data[3] = 2
-insertion_sort(data)
-`;
-
-/** Two blank lines before `data` (insertion_sort: line 13; selection_sort: line 13). */
-export const SELECTION_SORT_SOURCE = `from DSA import intArray, exch
-
-def selection_sort(arr):
-    N = len(arr)
-    for i in range(N):
-        min_idx = i
-        for j in range(i + 1, N):
-            if arr[j] < arr[min_idx]:
-                min_idx = j
-        exch(arr, i, min_idx)
-
-
-data = intArray(4)
-data[0] = 7
-data[1] = 3
-data[2] = 5
-data[3] = 2
-selection_sort(data)
-`;
-
-export const QUICK_FIND_SOURCE = `from DSA import intArray, stdReadInt, stdIsEmpty
-
-class QuickFindUF:
-    def __init__(self, n):
-        self.id = intArray(n)
-        for i in range(len(self.id)):
-            self.id[i] = i
-
-    def find(self, p):
-        return self.id[p]
-
-    def union(self, p, q):
-        pid = self.id[p]
-        qid = self.id[q]
-        for i in range(len(self.id)):
-            if self.id[i] == pid:
-                self.id[i] = qid
-
-    def connected(self, p, q):
-        return self.find(p) == self.find(q)
-
-
-n = stdReadInt()
-uf = QuickFindUF(n)
-
-while not stdIsEmpty():
-    p = stdReadInt()
-    q = stdReadInt()
-
-    if not uf.connected(p, q):
-        uf.union(p, q)
-        print(p, q)
-`;
-
-export const QUICK_UNION_SOURCE = `from DSA import intArray, stdReadInt, stdIsEmpty
-
-class QuickUnionUF:
-    def __init__(self, n):
-        self.id = intArray(n)
-        for i in range(len(self.id)):
-            self.id[i] = i
-
-    def find(self, i):
-        while i != self.id[i]:
-            i = self.id[i]
-        return i
-
-    def union(self, p, q):
-        i = self.find(p)
-        j = self.find(q)
-        self.id[i] = j
-
-    def connected(self, p, q):
-        return self.find(p) == self.find(q)
-
-
-n = stdReadInt()
-uf = QuickUnionUF(n)
-
-while not stdIsEmpty():
-    p = stdReadInt()
-    q = stdReadInt()
-
-    if not uf.connected(p, q):
-        uf.union(p, q)
-        print(p, q)
-`;
+export {
+  INSERTION_SORT_SOURCE,
+  QUICK_FIND_SOURCE,
+  QUICK_UNION_SOURCE,
+  SELECTION_SORT_SOURCE,
+};
 
 /** Inner `for j` (lines 7–9); outer `for i` (lines 5–10). */
 export const selectionSortLoopPulseRules: LoopPulseRestartRule[] = [
   {
-    bodyEndLine: 9,
-    headerLine: 7,
-    regionStartLine: 7,
-    regionEndLine: 9,
+    bodyEndLine: resolveLegacyBarSortLine("selection", 9),
+    headerLine: resolveLegacyBarSortLine("selection", 7),
+    regionStartLine: resolveLegacyBarSortLine("selection", 7),
+    regionEndLine: resolveLegacyBarSortLine("selection", 9),
     kind: "restart",
   },
   {
-    bodyEndLine: 10,
-    headerLine: 5,
-    regionStartLine: 5,
-    regionEndLine: 10,
+    bodyEndLine: resolveLegacyBarSortLine("selection", 10),
+    headerLine: resolveLegacyBarSortLine("selection", 5),
+    regionStartLine: resolveLegacyBarSortLine("selection", 5),
+    regionEndLine: resolveLegacyBarSortLine("selection", 10),
     kind: "restart",
   },
   {
-    bodyEndLine: 7,
-    headerLine: 10,
-    regionStartLine: 7,
-    regionEndLine: 7,
+    bodyEndLine: resolveLegacyBarSortLine("selection", 7),
+    headerLine: resolveLegacyBarSortLine("selection", 10),
+    regionStartLine: resolveLegacyBarSortLine("selection", 7),
+    regionEndLine: resolveLegacyBarSortLine("selection", 7),
     kind: "not-entered-loop",
   },
   {
-    bodyEndLine: 8,
-    headerLine: 7,
-    regionStartLine: 8,
-    regionEndLine: 8,
+    bodyEndLine: resolveLegacyBarSortLine("selection", 8),
+    headerLine: resolveLegacyBarSortLine("selection", 7),
+    regionStartLine: resolveLegacyBarSortLine("selection", 8),
+    regionEndLine: resolveLegacyBarSortLine("selection", 8),
     kind: "not-entered-if",
   },
   {
-    bodyEndLine: 8,
-    headerLine: 10,
-    regionStartLine: 8,
-    regionEndLine: 8,
+    bodyEndLine: resolveLegacyBarSortLine("selection", 8),
+    headerLine: resolveLegacyBarSortLine("selection", 10),
+    regionStartLine: resolveLegacyBarSortLine("selection", 8),
+    regionEndLine: resolveLegacyBarSortLine("selection", 8),
     kind: "not-entered-if",
   },
 ];
 
+
+function remapLegacyBarSortTraceLines(
+  algorithmId: "insertion" | "selection",
+  trace: MockStep[]
+): MockStep[] {
+  return trace.map((step) => ({
+    ...step,
+    line: resolveLegacyBarSortLine(algorithmId, step.line),
+  }));
+}
+
 /** Pre-recorded steps for INSERTION_SORT_SOURCE (swap-based, intArray + exch). */
-export const insertionSortTrace: MockStep[] = [
+const insertionSortTraceRaw: MockStep[] = [
   {
     line: 13,
     variables: { data: "intArray(4)" },
@@ -584,7 +505,7 @@ export const insertionSortTrace: MockStep[] = [
   },
 ];
 
-export const selectionSortTrace: MockStep[] = [
+const selectionSortTraceRaw: MockStep[] = [
   {
     line: 13,
     variables: { data: "intArray(4)" },
@@ -933,6 +854,16 @@ export const selectionSortTrace: MockStep[] = [
   },
 ];
 
+export const insertionSortTrace = remapLegacyBarSortTraceLines(
+  "insertion",
+  insertionSortTraceRaw
+);
+
+export const selectionSortTrace = remapLegacyBarSortTraceLines(
+  "selection",
+  selectionSortTraceRaw
+);
+
 type QuickFindStepInput = {
   op: string;
   before: number[];
@@ -1095,30 +1026,31 @@ function quickUnionCaptionUnion(op: string): string {
   return `\`${op}\``;
 }
 
-/** 1-based line index of `def union(self, p, q):` inside {@link QUICK_FIND_SOURCE}. */
-function findQuickFindUnionDefOneBasedLine(): number {
-  const lines = QUICK_FIND_SOURCE.split("\n");
-  for (let i = 0; i < lines.length; i += 1) {
-    if (/^\s*def union\(self,\s*p,\s*q\)\s*:/.test(lines[i]!)) {
-      return i + 1;
-    }
-  }
-  throw new Error("QUICK_FIND_SOURCE: union method definition line not found");
-}
+const quickFindLine = {
+  sourceStart: () => resolveAlgorithmAnchorLine("quick-find", "sourceStart"),
+  unionDef: () => resolveAlgorithmAnchorLine("quick-find", "unionDef"),
+  unionPid: () => resolveAlgorithmAnchorLine("quick-find", "unionPid"),
+  unionQid: () => resolveAlgorithmAnchorLine("quick-find", "unionQid"),
+  unionFor: () => resolveAlgorithmAnchorOffset("quick-find", "unionDef", 3),
+  unionIf: () => resolveAlgorithmAnchorOffset("quick-find", "unionDef", 4),
+  unionAssign: () => resolveAlgorithmAnchorOffset("quick-find", "unionDef", 5),
+  unionExit: () => resolveAlgorithmAnchorOffset("quick-find", "unionDef", 3),
+  finished: () => resolveAlgorithmAnchorOffset("quick-find", "unionDef", 6),
+} as const;
 
 function buildQuickFindTrace(): MockStep[] {
   const trace: MockStep[] = [];
   const edges: DsuGraphEdge[] = [];
   const initial = QUICK_FIND_STEP_INPUTS[0]!.before;
-  const unionDefLine = findQuickFindUnionDefOneBasedLine();
-  const unionPidLine = unionDefLine + 1;
-  const unionQidLine = unionDefLine + 2;
-  const unionForLine = unionDefLine + 3;
-  const unionIfLine = unionDefLine + 4;
-  const unionAssignLine = unionDefLine + 5;
-  const unionExitLine = unionDefLine + 3;
+  const unionDefLine = quickFindLine.unionDef();
+  const unionPidLine = quickFindLine.unionPid();
+  const unionQidLine = quickFindLine.unionQid();
+  const unionForLine = quickFindLine.unionFor();
+  const unionIfLine = quickFindLine.unionIf();
+  const unionAssignLine = quickFindLine.unionAssign();
+  const unionExitLine = quickFindLine.unionExit();
   trace.push({
-    line: 1,
+    line: quickFindLine.sourceStart(),
     variables: {
       operation: "init",
       id_before: formatIdArray(initial),
@@ -1293,7 +1225,7 @@ function buildQuickFindTrace(): MockStep[] {
 
   const finalValues = QUICK_FIND_STEP_INPUTS[QUICK_FIND_STEP_INPUTS.length - 1]!.after;
   trace.push({
-    line: unionDefLine + 6,
+    line: quickFindLine.finished(),
     variables: {
       operation: "finished",
       p: "--",
@@ -1330,10 +1262,10 @@ function buildQuickFindUnionTrace(): MockStep[] {
   const trace: MockStep[] = [];
   const edges: DsuGraphEdge[] = [];
   const initial = QUICK_FIND_STEP_INPUTS[0]!.before;
-  const unionDefLine = findQuickFindUnionDefOneBasedLine();
+  const unionDefLine = quickFindLine.unionDef();
 
   trace.push({
-    line: 1,
+    line: quickFindLine.sourceStart(),
     variables: {
       operation: "init",
       id_before: formatIdArray(initial),
@@ -1421,7 +1353,7 @@ function buildQuickFindUnionTrace(): MockStep[] {
 
   const finalValues = QUICK_FIND_STEP_INPUTS[QUICK_FIND_STEP_INPUTS.length - 1]!.after;
   trace.push({
-    line: 25,
+    line: quickFindLine.finished(),
     variables: {
       operation: "finished",
       p: "--",
@@ -1449,27 +1381,18 @@ function buildQuickFindUnionTrace(): MockStep[] {
 
 export const quickFindUnionTrace: MockStep[] = buildQuickFindUnionTrace();
 
-/** 1-based line index of `def union(self, p, q):` inside {@link QUICK_UNION_SOURCE}. */
-function findQuickUnionUnionDefOneBasedLine(): number {
-  const lines = QUICK_UNION_SOURCE.split("\n");
-  for (let i = 0; i < lines.length; i += 1) {
-    if (/^\s*def union\(self,\s*p,\s*q\)\s*:/.test(lines[i]!)) {
-      return i + 1;
-    }
-  }
-  throw new Error("QUICK_UNION_SOURCE: union method definition line not found");
-}
-
-/** 1-based line index of `def find(self, i):` inside {@link QUICK_UNION_SOURCE}. */
-function findQuickUnionFindDefOneBasedLine(): number {
-  const lines = QUICK_UNION_SOURCE.split("\n");
-  for (let i = 0; i < lines.length; i += 1) {
-    if (/^\s*def find\(self,\s*i\)\s*:/.test(lines[i]!)) {
-      return i + 1;
-    }
-  }
-  throw new Error("QUICK_UNION_SOURCE: find method definition line not found");
-}
+const quickUnionLine = {
+  sourceStart: () => resolveAlgorithmAnchorLine("quick-union", "sourceStart"),
+  findDef: () => resolveAlgorithmAnchorLine("quick-union", "findDef"),
+  findWhile: () => resolveAlgorithmAnchorLine("quick-union", "findWhile"),
+  findAdvance: () => resolveAlgorithmAnchorLine("quick-union", "findAdvance"),
+  findReturn: () => resolveAlgorithmAnchorLine("quick-union", "findReturn"),
+  unionDef: () => resolveAlgorithmAnchorLine("quick-union", "unionDef"),
+  unionFindP: () => resolveAlgorithmAnchorLine("quick-union", "unionFindP"),
+  unionFindQ: () => resolveAlgorithmAnchorLine("quick-union", "unionFindQ"),
+  unionAssign: () => resolveAlgorithmAnchorLine("quick-union", "unionAssign"),
+  finished: () => resolveAlgorithmAnchorOffset("quick-union", "unionDef", 4),
+} as const;
 
 type QuickUnionFindResult = {
   root: number;
@@ -1504,10 +1427,10 @@ function runQuickUnionFind(
 function buildQuickUnionTrace(): MockStep[] {
   const trace: MockStep[] = [];
   const initial = QUICK_UNION_STEP_INPUTS[0]!.before;
-  const unionDefLine = findQuickUnionUnionDefOneBasedLine();
+  const unionDefLine = quickUnionLine.unionDef();
 
   trace.push({
-    line: 1,
+    line: quickUnionLine.sourceStart(),
     variables: {
       operation: "init",
       id_before: formatIdArray(initial),
@@ -1605,7 +1528,7 @@ function buildQuickUnionTrace(): MockStep[] {
 
   const finalValues = QUICK_UNION_STEP_INPUTS[QUICK_UNION_STEP_INPUTS.length - 1]!.after;
   trace.push({
-    line: 19,
+    line: quickUnionLine.finished(),
     variables: {
       operation: "finished",
       p: "--",
@@ -1636,17 +1559,16 @@ function buildQuickUnionTrace(): MockStep[] {
 function buildQuickUnionFullTrace(): MockStep[] {
   const trace: MockStep[] = [];
   const initial = QUICK_UNION_STEP_INPUTS[0]!.before;
-  const findDefLine = findQuickUnionFindDefOneBasedLine();
-  const unionDefLine = findQuickUnionUnionDefOneBasedLine();
-  const findWhileLine = findDefLine + 1;
-  const findAdvanceLine = findDefLine + 2;
-  const findReturnLine = findDefLine + 3;
-  const unionFindPLine = unionDefLine + 1;
-  const unionFindQLine = unionDefLine + 2;
-  const unionAssignLine = unionDefLine + 3;
+  const findWhileLine = quickUnionLine.findWhile();
+  const findAdvanceLine = quickUnionLine.findAdvance();
+  const findReturnLine = quickUnionLine.findReturn();
+  const unionDefLine = quickUnionLine.unionDef();
+  const unionFindPLine = quickUnionLine.unionFindP();
+  const unionFindQLine = quickUnionLine.unionFindQ();
+  const unionAssignLine = quickUnionLine.unionAssign();
 
   trace.push({
-    line: 1,
+    line: quickUnionLine.sourceStart(),
     variables: {
       operation: "init",
       id_before: formatIdArray(initial),
@@ -1859,7 +1781,7 @@ function buildQuickUnionFullTrace(): MockStep[] {
 
   const finalValues = QUICK_UNION_STEP_INPUTS[QUICK_UNION_STEP_INPUTS.length - 1]!.after;
   trace.push({
-    line: unionDefLine + 4,
+    line: quickUnionLine.finished(),
     variables: {
       operation: "finished",
       p: "--",

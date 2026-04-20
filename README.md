@@ -116,3 +116,5 @@ Developer maintenance note:
 
 `README.md` is the single source of truth for current entry flow and routing behavior.
 
+Code-line anchor policy (no hardcoded trace line numbers) is maintained in [`docs/line-anchor-spec.md`](docs/line-anchor-spec.md) as the authoritative engineering spec.
+

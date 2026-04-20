@@ -2,6 +2,7 @@ import {
   type AlgorithmId,
   type MockStep,
 } from "./mockTrace";
+import { resolveAlgorithmAnchorLine } from "./algorithmLineAnchors";
 import { selectionSortedExclusiveEnd } from "./selectionSortedPrefix";
 import { isSelectionJInactivePhase } from "./selectionPointerPhase";
 
@@ -44,7 +45,9 @@ const ALGORITHM_SPECS: Record<AlgorithmId, AlgorithmSpec> = {
     visual: {
       inferJMinus1FromHighlights: true,
       getSortedExclusiveEnd: ({ stepLine, valuesLength }) => {
-        return stepLine === 18 ? valuesLength : undefined;
+        return stepLine === resolveAlgorithmAnchorLine("insertion", "callSort")
+          ? valuesLength
+          : undefined;
       },
       isJInactivePhase: noJInactivePhase,
       envelopeTraceIds: BAR_SORT_PAIR_ENVELOPE_IDS,

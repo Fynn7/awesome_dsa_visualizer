@@ -21,7 +21,7 @@ describe("quick union demos pre-union cue", () => {
     for (const step of cueSteps) {
       expect(step.viz.transitionEffect).toBe("pulse");
       expect(step.variables.array_accesses).toBe("0");
-      expect(step.viz.caption).toContain("watch these two");
+      expect(step.viz.caption).toContain("Watch these!");
       expect(step.consoleAppend).toBeUndefined();
     }
   });
@@ -36,7 +36,7 @@ describe("quick union demos pre-union cue", () => {
     for (const step of cueSteps) {
       expect(step.viz.transitionEffect).toBe("pulse");
       expect(step.variables.array_accesses).toBe("0");
-      expect(step.viz.caption).toContain("watch these two");
+      expect(step.viz.caption).toContain("Watch these!");
       expect(step.viz.highlightIndices.length).toBeGreaterThan(0);
     }
   });

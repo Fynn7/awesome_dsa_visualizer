@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { QUICK_FIND_SOURCE, getAlgorithmDemo, getAlgorithmIds } from "./mockTrace";
+import { resolveAlgorithmAnchorLine } from "./algorithmLineAnchors";
+import { getAlgorithmDemo, getAlgorithmIds } from "./mockTrace";
 
 describe("quick find union-step demo", () => {
   it("is registered in algorithm ids", () => {
@@ -31,15 +32,7 @@ describe("quick find union-step demo", () => {
   });
 
   it("anchors code highlight to def union for each union step", () => {
-    const lines = QUICK_FIND_SOURCE.split("\n");
-    let unionDefLine = 0;
-    for (let i = 0; i < lines.length; i += 1) {
-      if (/^\s*def union\(self,\s*p,\s*q\)\s*:/.test(lines[i]!)) {
-        unionDefLine = i + 1;
-        break;
-      }
-    }
-    expect(unionDefLine).toBeGreaterThan(0);
+    const unionDefLine = resolveAlgorithmAnchorLine("quick-find", "unionDef");
 
     const { trace } = getAlgorithmDemo("quick-find");
     const unionSteps = trace.filter(
@@ -75,7 +68,7 @@ describe("quick find union-step demo", () => {
       expect(step.viz.transitionEffect).toBe("pulse");
       expect(step.consoleAppend).toBeUndefined();
       expect(step.variables.array_accesses).toBe("0");
-      expect(step.viz.caption).toContain("watch these two");
+      expect(step.viz.caption).toContain("Watch these!");
     }
   });
 

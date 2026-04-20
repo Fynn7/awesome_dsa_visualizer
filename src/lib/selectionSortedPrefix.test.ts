@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { barToneForIndex } from "./vizBarTone";
+import { resolveAlgorithmAnchorLine } from "./algorithmLineAnchors";
 import { selectionSortedExclusiveEnd } from "./selectionSortedPrefix";
 
 const len = 4;
+
+const outerForLine = resolveAlgorithmAnchorLine("selection", "outerFor");
+const minAssignLine = resolveAlgorithmAnchorLine("selection", "minAssign");
+const innerForLine = resolveAlgorithmAnchorLine("selection", "innerFor");
+const swapLine = resolveAlgorithmAnchorLine("selection", "swap");
+const completionLine = resolveAlgorithmAnchorLine("selection", "callSort");
 
 describe("selectionSortedExclusiveEnd", () => {
   it("returns undefined when i is not a valid index string", () => {
@@ -13,28 +20,48 @@ describe("selectionSortedExclusiveEnd", () => {
 
   it("lines 5–10: exclusive end equals current outer i", () => {
     expect(
-      selectionSortedExclusiveEnd(5, { arr: "[]", N: "4", i: "1", j: "--" }, len)
+      selectionSortedExclusiveEnd(
+        outerForLine,
+        { arr: "[]", N: "4", i: "1", j: "--" },
+        len
+      )
     ).toBe(1);
     expect(
-      selectionSortedExclusiveEnd(6, { arr: "[]", N: "4", i: "2", j: "--" }, len)
+      selectionSortedExclusiveEnd(
+        minAssignLine,
+        { arr: "[]", N: "4", i: "2", j: "--" },
+        len
+      )
     ).toBe(2);
     expect(
-      selectionSortedExclusiveEnd(7, { arr: "[]", N: "4", i: "0", j: "1" }, len)
+      selectionSortedExclusiveEnd(
+        innerForLine,
+        { arr: "[]", N: "4", i: "0", j: "1" },
+        len
+      )
     ).toBe(0);
     expect(
-      selectionSortedExclusiveEnd(10, { arr: "[]", N: "4", i: "3", j: "--" }, len)
+      selectionSortedExclusiveEnd(
+        swapLine,
+        { arr: "[]", N: "4", i: "3", j: "--" },
+        len
+      )
     ).toBe(3);
   });
 
   it("returns undefined for lines outside sort body except completion", () => {
     expect(
-      selectionSortedExclusiveEnd(4, { i: "0", j: "--" }, len)
+      selectionSortedExclusiveEnd(outerForLine - 1, { i: "0", j: "--" }, len)
     ).toBeUndefined();
   });
 
   it("line 18: full length so every bar can use sorted tone without highlights", () => {
     expect(
-      selectionSortedExclusiveEnd(18, { arr: "[2, 3, 5, 7]", data: "[2, 3, 5, 7]" }, len)
+      selectionSortedExclusiveEnd(
+        completionLine,
+        { arr: "[2, 3, 5, 7]", data: "[2, 3, 5, 7]" },
+        len
+      )
     ).toBe(len);
     const v = {
       caption: "",
@@ -48,7 +75,7 @@ describe("selectionSortedExclusiveEnd", () => {
 
   it("aligns with selection trace: i=1 → index 0 is sorted tone when not highlighted", () => {
     const end = selectionSortedExclusiveEnd(
-      5,
+      outerForLine,
       { arr: "[2, 3, 5, 7]", N: "4", i: "1", j: "--", min_idx: "--" },
       len
     );
