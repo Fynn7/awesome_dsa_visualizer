@@ -1,4 +1,4 @@
-import { MOTION_MIN_DELTA_PX } from "./motionTokens";
+import { MOTION_MIN_DELTA_PX } from "../design/motionTokens";
 
 export type FrameScheduler = (callback: FrameRequestCallback) => number;
 

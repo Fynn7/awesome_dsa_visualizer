@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 import { HelpCircle, Search, Settings } from "lucide-react";
+import { Button, IconButton, Toast, ToastProvider } from "@visualizer-ui";
 import { CommandPalette } from "./components/CommandPalette";
 import { KeyboardHelpModal } from "./components/KeyboardHelpModal";
 import { PresentationShell } from "./components/PresentationShell";
@@ -20,11 +21,16 @@ import {
 } from "./lib/executionReducer";
 import { getAlgorithmTitle } from "./lib/commandPaletteItems";
 import { commandPaletteShortcutLabel } from "./lib/platformShortcut";
+import {
+  loadUiPreferences,
+  saveUiPreferences,
+} from "./lib/uiPreferencesStorage";
+import { OverlayProvider } from "./providers/OverlayProvider";
+import { useOverlayManager } from "./hooks/useOverlayManager";
 import { strings } from "./strings";
 import type { AlgorithmId } from "./lib/mockTrace";
 
 const HEADER_ICON = { size: 18, strokeWidth: 2 } as const;
-const UI_PREFERENCES_STORAGE_KEY = "awesome-dsa-visualizer:ui-preferences";
 
 type PresentationMode = "off" | "native" | "overlay";
 
@@ -33,28 +39,21 @@ type AppProps = {
 };
 
 export default function App({ initialAlgorithmId }: AppProps) {
-  const loadDisplayConnectionsPreference = (): boolean => {
-    if (typeof window === "undefined") return false;
-    try {
-      const raw = window.localStorage.getItem(UI_PREFERENCES_STORAGE_KEY);
-      if (!raw) return false;
-      const parsed = JSON.parse(raw) as { displayConnections?: unknown };
-      return parsed.displayConnections === true;
-    } catch {
-      return false;
-    }
-  };
+  return (
+    <ToastProvider>
+      <OverlayProvider>
+        <AppInner initialAlgorithmId={initialAlgorithmId} />
+      </OverlayProvider>
+    </ToastProvider>
+  );
+}
+
+function AppInner({ initialAlgorithmId }: AppProps) {
   const [state, dispatch] = useReducer(
     executionReducer,
     undefined,
-    () =>
-      createInitialState({
-        displayConnections: loadDisplayConnectionsPreference(),
-      })
+    () => createInitialState(loadUiPreferences())
   );
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  const [helpOpen, setHelpOpen] = useState(false);
   const [presentationMode, setPresentationMode] =
     useState<PresentationMode>("off");
   const [presentationNotice, setPresentationNotice] = useState<string | null>(
@@ -62,9 +61,7 @@ export default function App({ initialAlgorithmId }: AppProps) {
   );
   const [workspaceBusy, setWorkspaceBusy] = useState(true);
   const presentationShellRef = useRef<HTMLDivElement | null>(null);
-  const commandPaletteTriggerRef = useRef<HTMLButtonElement>(null);
-  const settingsTriggerRef = useRef<HTMLButtonElement>(null);
-  const helpTriggerRef = useRef<HTMLButtonElement>(null);
+  const overlay = useOverlayManager();
 
   const paletteShortcut = commandPaletteShortcutLabel();
 
@@ -102,21 +99,6 @@ export default function App({ initialAlgorithmId }: AppProps) {
     setPresentationMode("overlay");
   }, []);
 
-  const closeCommandPalette = useCallback(() => {
-    setCommandPaletteOpen(false);
-    requestAnimationFrame(() => commandPaletteTriggerRef.current?.focus());
-  }, []);
-
-  const closeSettings = useCallback(() => {
-    setSettingsOpen(false);
-    requestAnimationFrame(() => settingsTriggerRef.current?.focus());
-  }, []);
-
-  const closeHelp = useCallback(() => {
-    setHelpOpen(false);
-    requestAnimationFrame(() => helpTriggerRef.current?.focus());
-  }, []);
-
   useEffect(() => {
     if (!state.playing) return;
     const id = window.setInterval(() => {
@@ -132,37 +114,6 @@ export default function App({ initialAlgorithmId }: AppProps) {
     }, 6000);
     return () => window.clearTimeout(id);
   }, [state.toast]);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey) || !e.shiftKey) return;
-      if (e.key !== "P" && e.key !== "p" && e.code !== "KeyP") return;
-      e.preventDefault();
-      setCommandPaletteOpen((o) => !o);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "?") return;
-      const t = e.target;
-      if (!(t instanceof Element)) return;
-      if (
-        t.closest(
-          "input, textarea, select, [contenteditable=true], .monaco-editor"
-        )
-      ) {
-        return;
-      }
-      if (settingsOpen || commandPaletteOpen) return;
-      e.preventDefault();
-      setHelpOpen((o) => !o);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [commandPaletteOpen, settingsOpen]);
 
   useEffect(() => {
     const onFs = () => {
@@ -181,22 +132,16 @@ export default function App({ initialAlgorithmId }: AppProps) {
   }, [state.panels.animation, presentationMode, exitPresentation]);
 
   useEffect(() => {
-    if (!initialAlgorithmId) {
-      return;
-    }
+    if (!initialAlgorithmId) return;
     dispatch({ type: "SET_ALGORITHM", algorithmId: initialAlgorithmId });
   }, [initialAlgorithmId]);
 
   useEffect(() => {
-    try {
-      window.localStorage.setItem(
-        UI_PREFERENCES_STORAGE_KEY,
-        JSON.stringify({ displayConnections: state.displayConnections })
-      );
-    } catch {
-      // Ignore storage failures (private mode / quota / disabled storage).
-    }
-  }, [state.displayConnections]);
+    saveUiPreferences({
+      displayConnections: state.displayConnections,
+      replayAnimationsOnStepBack: state.replayAnimationsOnStepBack,
+    });
+  }, [state.displayConnections, state.replayAnimationsOnStepBack]);
 
   return (
     <div className="app-shell" aria-busy={workspaceBusy}>
@@ -206,11 +151,11 @@ export default function App({ initialAlgorithmId }: AppProps) {
         </h1>
         <div className="app-header-actions">
           <button
-            ref={commandPaletteTriggerRef}
+            ref={(el) => overlay.registerTrigger("commandPalette", el)}
             type="button"
             className="command-palette-trigger"
             aria-label={strings.header.commandAria}
-            onClick={() => setCommandPaletteOpen(true)}
+            onClick={() => overlay.open("commandPalette")}
           >
             <span className="command-palette-trigger-icon" aria-hidden>
               <Search size={14} strokeWidth={2} />
@@ -219,24 +164,22 @@ export default function App({ initialAlgorithmId }: AppProps) {
               {strings.header.commandPlaceholder}
             </span>
           </button>
-          <button
-            ref={helpTriggerRef}
-            type="button"
-            className="btn btn-icon app-header-help"
+          <IconButton
+            ref={(el) => overlay.registerTrigger("help", el)}
+            className="app-header-help"
             aria-label={strings.toolbar.openKeyboardHelp}
-            onClick={() => setHelpOpen(true)}
+            onClick={() => overlay.open("help")}
           >
             <HelpCircle {...HEADER_ICON} aria-hidden />
-          </button>
-          <button
-            ref={settingsTriggerRef}
-            type="button"
-            className="btn btn-icon app-header-settings"
+          </IconButton>
+          <IconButton
+            ref={(el) => overlay.registerTrigger("settings", el)}
+            className="app-header-settings"
             aria-label={strings.toolbar.openSettings}
-            onClick={() => setSettingsOpen(true)}
+            onClick={() => overlay.open("settings")}
           >
             <Settings {...HEADER_ICON} aria-hidden />
-          </button>
+          </IconButton>
         </div>
       </header>
       <Toolbar state={state} dispatch={dispatch} />
@@ -264,70 +207,52 @@ export default function App({ initialAlgorithmId }: AppProps) {
           onExit={exitPresentation}
         />
       ) : null}
-      {presentationNotice ? (
-        <div
-          className="toast"
-          role="status"
-          onClick={() => setPresentationNotice(null)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              setPresentationNotice(null);
-            }
-          }}
-          tabIndex={0}
-        >
-          {presentationNotice}
-        </div>
-      ) : null}
-      {state.toast ? (
-        <div
-          className="toast"
-          role="status"
-          onClick={() => dispatch({ type: "CLEAR_TOAST" })}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              dispatch({ type: "CLEAR_TOAST" });
-            }
-          }}
-          tabIndex={0}
-        >
-          <div className="toast-row">
-            <span>{state.toast}</span>
-            {state.toast === strings.toast.codeDirty ? (
-              <div className="toast-actions">
-                <button
-                  type="button"
-                  className="btn btn-sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    dispatch({ type: "RESET" });
-                  }}
-                >
-                  {strings.toast.resetDemoButton}
-                </button>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
+      <Toast
+        open={presentationNotice !== null}
+        onOpenChange={(open) => {
+          if (!open) setPresentationNotice(null);
+        }}
+      >
+        {presentationNotice ?? ""}
+      </Toast>
+      <Toast
+        open={state.toast !== null}
+        onOpenChange={(open) => {
+          if (!open) dispatch({ type: "CLEAR_TOAST" });
+        }}
+        action={
+          state.toast === strings.toast.codeDirty ? (
+            <Button
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                dispatch({ type: "RESET" });
+              }}
+            >
+              {strings.toast.resetDemoButton}
+            </Button>
+          ) : undefined
+        }
+      >
+        {state.toast ?? ""}
+      </Toast>
       <SettingsModal
-        open={settingsOpen}
-        onClose={closeSettings}
+        open={overlay.isOpen("settings")}
+        onClose={() => overlay.close("settings")}
         showArrayIndices={state.showArrayIndices}
         enableAnimationScroll={state.enableAnimationScroll}
         animationFitAllowUpscale={state.animationFitAllowUpscale}
+        replayAnimationsOnStepBack={state.replayAnimationsOnStepBack}
         dispatch={dispatch}
       />
       <KeyboardHelpModal
-        open={helpOpen}
-        onClose={closeHelp}
+        open={overlay.isOpen("help")}
+        onClose={() => overlay.close("help")}
         commandPaletteShortcut={paletteShortcut}
       />
       <CommandPalette
-        open={commandPaletteOpen}
-        onClose={closeCommandPalette}
+        open={overlay.isOpen("commandPalette")}
+        onClose={() => overlay.close("commandPalette")}
         onPick={(algorithmId) =>
           dispatch({ type: "SET_ALGORITHM", algorithmId })
         }

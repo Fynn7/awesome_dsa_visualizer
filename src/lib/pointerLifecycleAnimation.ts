@@ -1,8 +1,15 @@
-import { MOTION_CLEANUP_BUFFER_MS } from "./motionTokens";
+import {
+  MOTION_CLEANUP_BUFFER_MS,
+  POINTER_ENTER_DURATION_RATIO,
+  POINTER_ENTER_MIN_DURATION_MS,
+  POINTER_ENTER_MAX_DURATION_MS,
+} from "../design/motionTokens";
 
-export const POINTER_ENTER_DURATION_RATIO = 0.4;
-export const POINTER_ENTER_MIN_DURATION_MS = 120;
-export const POINTER_ENTER_MAX_DURATION_MS = 480;
+export {
+  POINTER_ENTER_DURATION_RATIO,
+  POINTER_ENTER_MIN_DURATION_MS,
+  POINTER_ENTER_MAX_DURATION_MS,
+};
 
 export const POINTER_ENTER_CLASS = "viz-pointer--entering";
 export const POINTER_EXIT_CLASS = "viz-pointer--exiting";

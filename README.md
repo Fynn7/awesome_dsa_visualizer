@@ -11,6 +11,7 @@ A browser-based visualization tool for teaching university-level data structures
 - **Teaching-focused workspace**
   - Resizable layout with panels for **Code**, **Console**, **Animation**, **Variables**, and an optional **PDF** panel for problem statements.
   - All panels can be shown/hidden via the toolbar, with an empty-state hint when everything is hidden.
+  - Toolbar playback: **Jump to end** reloads the built-in demo script for the current algorithm (same baseline restore as **Reset**) and moves execution to the **last** step; **Reset** restores that baseline at the **first** step. Even when already at the final step, **Jump to end** stays available if the editor is dirty so instructors can quickly discard edits and restore the baseline. The same controls appear in presentation mode.
 - **Command palette and keyboard shortcuts**
   - Command palette to switch demos and scenarios (`Ctrl+Shift+P` / `Cmd+Shift+P`).
   - Dedicated shortcuts help overlay (opened with the `?` key) describing play/pause, step, and exit controls.
@@ -29,6 +30,7 @@ A browser-based visualization tool for teaching university-level data structures
 
 ### Union-Find Exercise Traces
 
+- **Voiceover / speaker spec** (step tables, semantics, and access-count rules aligned with the animations): [docs/union-find-voiceover-spec.md](docs/union-find-voiceover-spec.md).
 - Both demos use the same precomputed operation sequence `(9,0) (3,4) (5,8) (7,2) (2,1) (5,7) (0,3) (4,2)` and the same displayed source (synced with `src_py/uebung1.py`, including `connected` and the input loop).
 - **Quick Find** (`algorithm=quick-find`): each `union()` is shown as two steps: a pre-union cue frame (pulse-highlight operated nodes) followed by one completed-union frame; animation captions for the union-result frame show only the `union(p,q)` call in inline code style; console logs are union summaries only (no per-`i` scan lines); the code panel highlights the `def union(self, p, q):` line on each cue/result step; `array_accesses` in Variables remains the union total on result steps (cue steps keep `0`).
 - **Quick Find - Full Trace** (`algorithm=quick-find-full`): same DSU rules and final numbers as today’s line-by-step trace inside `union`.
@@ -37,6 +39,8 @@ A browser-based visualization tool for teaching university-level data structures
 - In Quick Find modes (Quick Find / Quick Find - Full Trace), Animation panel includes a `display connections` toggle (default OFF). Its state is persisted in `localStorage`, so your preference is reused on next visit. In Quick Union modes (Quick Union / Quick Union - Full Trace), connections are always visible and the toggle is not shown.
 - The Animation panel renders a DSU graph (`0..9` nodes): each circle labels vertex index `i`, with the current `id[i]` value shown at the top-right of the circle. In both Quick Find modes, nodes are deterministically color-mapped by current `id[i]` group value so equal groups share the same fill color; the palette was tuned for stronger cross-group contrast while staying consistent with the dark classroom theme. Node fills keep a translucent look, with an opaque underlay disk so edge strokes do not visually bleed through node interiors. Union edges are SVG paths that follow the same detour keypoints as before (endpoints on node circles) with small rounded corners at bends so lines stay close to the guide polyline; segments that would cross unrelated nodes still route through a horizontal gutter (cross-row pairs use the mid channel between the two rows; non-adjacent pairs on the **top** row use stacked channels **between** the top row and the mid gutter so they do not overlap cross-row routes such as 0–9; non-adjacent pairs on the **bottom** row use stacked channels **above** that row but **below** the mid gutter, with lane height determined by span width so wider spans such as 5–8 keep a stable y across steps, while narrower spans such as 5–7 are always placed slightly lower than 5–8 to avoid overlap). In **Full** mode, a new union edge is added only after the trace hits `if self.id[i] == pid` with a match (aligned with the Python control flow), then stays for the rest of that union; longer non-highlighted edges are slightly de-emphasized. The current union edge is highlighted while it is active, and the last `Finished` frame renders all edges with one uniform color.
 - **Quick Find - Full Trace** mode: the code panel uses fine-grained execution highlighting line-by-line through the `QuickFindUF.union` body with real execution timing; captions render the `union(p,q)` call in inline code where it appears; `array_accesses` is a running counter per sub-step and each union completion matches the official totals.
+- **Step-transition animations** (all four Union-Find modes): node group color crossfades, `id[i]` number flips (old fades out / new fades in), new union edges stroke-draw in from the receiver side toward the joiner side (Quick Union: parent/root toward child; Quick Find: `q` representative toward `p`), the current active edge pulses once, Quick Union tree reparenting glides nodes and their edge endpoints in lock-step via a unified animation driver, Quick Find - Full pulses the scanned node during the `for i in range(n)` sweep, and Quick Union - Full pulses both endpoints and the traversed edge as `find()` walks toward the root. Step semantics and `array_accesses` totals are unchanged — these are cosmetic overlays gated by the global Step Back setting (see below). Durations follow the Settings speed slider (via `speedMs`) and use the shared `--motion-easing-emphasized` curve.
+- **Step Back animation setting**: a new toggle in **Settings** named **"Replay animations when stepping backward (applies to all algorithms)"** controls whether animations replay in reverse on `Step Back`. Default is OFF, so stepping backward snaps to the target state instantly for fast scrubbing; turn it ON to see the same animations run in reverse. The preference is persisted in `localStorage` alongside `display connections`.
 - **Presentation modes**
   - Native browser fullscreen presentation when available.
   - In-app overlay presentation as a fallback, with clear on-screen hints for left/right click behavior.
@@ -58,23 +62,23 @@ A browser-based visualization tool for teaching university-level data structures
 > Node.js 20+ is required (router dependencies declare `engines.node >= 20.0.0`).
 
 1. **Install dependencies**
-   ```bash
+  ```bash
    npm install
    # or
    pnpm install
    # or
    yarn install
-   ```
+  ```
 2. **Start the development server**
-   ```bash
+  ```bash
    npm run dev
    # or the equivalent script for your package manager
-   ```
+  ```
 3. **Open the app**
-   - Visit `http://localhost:5173` (or whatever port your dev server reports) in a modern desktop browser.
-   - At `/`, use the search input to pick a demo and enter the visualizer at `/app`.
-   - You can also open `/app` directly to enter the full workspace.
-   - **Development only**: open `/app?crash=1` to intentionally render the route error recovery screen (remove the query to continue).
+  - Visit `http://localhost:5173` (or whatever port your dev server reports) in a modern desktop browser.
+  - At `/`, use the search input to pick a demo and enter the visualizer at `/app`.
+  - You can also open `/app` directly to enter the full workspace.
+  - **Development only**: open `/app?crash=1` to intentionally render the route error recovery screen (remove the query to continue).
 
 ## Deployment (Vercel)
 
@@ -111,9 +115,15 @@ Developer maintenance note:
 - Pointer key registry and visibility-map helpers are centralized in `src/lib/pointerRegistry.ts`.
 - Pointer per-frame stage decisions (hide/enter/flip + delta baseline) are centralized in `src/lib/pointerStagePlan.ts`.
 - Bar FLIP and assign animation policy is centralized in `src/lib/barAnimationPolicy.ts`.
+- Quick Union tree step-transition animation (node slot positions + edge endpoints driven by one interpolation loop) is centralized in `src/lib/dsuTreeAnimation.ts`.
 - Bar identity reuse/derivation is centralized in `src/lib/visualBars.ts`.
 - Bar/pointer tone-to-class mapping is centralized in `src/lib/visualToneClassMap.ts`.
-- Shared animation tokens (easing/threshold/buffer) are centralized in `src/lib/motionTokens.ts`.
+- Shared animation tokens (easing/threshold/buffer/duration/UI-transition timings) are centralized in `src/design/motionTokens.ts`; `src/lib/motionTokens.ts` is a legacy re-export shim that forwards to the design source.
+- Color, typography, and scrollbar tokens are centralized in `src/design/tokens.ts`; the `viteDesignTokensPlugin` in `src/design/viteDesignTokensPlugin.ts` generates a `:root` CSS variable block at the `@design-tokens-root` sentinel in `src/index.css` at build/dev time. Never hand-edit those variables in CSS — edit the TypeScript source.
+- The Step Back replay vs. snap decision (forward/back/instant gate) is centralized in `src/lib/motionDirectionGate.ts` (`shouldPlayTransitions`); it is the one place all animation categories consult before priming FLIPs or keyframes.
+- The `AnimationPanel` orchestrator in `src/components/AnimationPanel.tsx` composes `src/components/animation/DsuGraph.tsx` (DSU node + edge renderer), `src/components/animation/DsuNodeSlot.tsx`, `src/components/animation/CaptionLine.tsx`, plus helpers in `src/components/animation/dsuEdgeHelpers.ts`, `src/components/animation/quickUnionTreeLayout.ts`, and `src/components/animation/animationAriaHelpers.ts`. Pure renderers and layout math live in `src/components/animation/`; animation effect scheduling remains in the orchestrator so shared refs and run-guards stay in one place.
+- Global overlay coordination (command palette, settings, keyboard help) is owned by `src/providers/OverlayProvider.tsx` (`useOverlayManager` hook). UI preferences persist via `src/lib/uiPreferencesStorage.ts`.
+- Internal UI primitives (Button / IconButton / Switch / Dialog / Combobox / Toast / PanelCard) live under `shared/visualizer-ui/primitives/` and are re-exported via `shared/visualizer-ui/index.ts` (`@visualizer-ui` alias). They wrap Radix UI headless primitives and consume the shared CSS variable tokens. Hand-written modal shells, focus traps, and inline-styled toggles were removed in favor of these primitives; do not reintroduce a second implementation.
 - To change one animation category across all algorithms and all steps, edit the corresponding module above and keep `AnimationPanel` consuming those helpers only.
 
 `README.md` is the single source of truth for current entry flow and routing behavior.

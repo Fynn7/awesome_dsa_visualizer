@@ -17,5 +17,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["vite.config.ts"]
+  "include": ["vite.config.ts", "src/design/viteDesignTokensPlugin.ts", "src/design/tokens.ts", "src/design/motionTokens.ts"]
 }

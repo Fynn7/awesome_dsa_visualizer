@@ -1,14 +1,21 @@
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import {
+  Combobox,
+  type ComboboxRow,
+} from "@visualizer-ui";
 import type { AlgorithmId } from "../lib/mockTrace";
 import {
   getFilteredPaletteItems,
   getTitleMatchIndices,
+  type PaletteItem,
 } from "../lib/commandPaletteItems";
 import { strings } from "../strings";
 import { BlockingLoadingOverlay } from "../components/LoadingState";
 import { AlgorithmTypeIcon } from "../components/AlgorithmTypeIcon";
+
+type PaletteComboboxRow = ComboboxRow<PaletteItem>;
 
 function HighlightedTitle({
   title,
@@ -50,27 +57,18 @@ function HighlightedTitle({
 
 export function HomePage() {
   const navigate = useNavigate();
-  const listId = useId();
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const [query, setQuery] = useState("");
-  const [activeIndex, setActiveIndex] = useState(0);
   const [isSuggestionOpen, setIsSuggestionOpen] = useState(false);
   const [isRoutePending, setIsRoutePending] = useState(false);
 
-  const filtered = useMemo(() => getFilteredPaletteItems(query), [query]);
-
-  useEffect(() => {
-    setActiveIndex((i) =>
-      filtered.length === 0 ? 0 : Math.min(i, filtered.length - 1)
-    );
-  }, [filtered]);
-
-  useEffect(() => {
-    const rafId = window.requestAnimationFrame(() => {
-      inputRef.current?.focus();
-    });
-    return () => window.cancelAnimationFrame(rafId);
-  }, []);
+  const filter = useMemo(
+    () => (query: string): PaletteComboboxRow[] => {
+      return getFilteredPaletteItems(query).map((row) => ({
+        item: row.item,
+        key: row.item.id,
+      }));
+    },
+    []
+  );
 
   const enterApp = (algorithmId: AlgorithmId) => {
     if (isRoutePending) return;
@@ -78,110 +76,86 @@ export function HomePage() {
     navigate(`/app?algorithm=${encodeURIComponent(algorithmId)}`);
   };
 
-  const pickAt = (index: number) => {
-    const row = filtered[index];
-    if (!row) return;
-    enterApp(row.item.id);
-  };
-
-  const activeItem = filtered[activeIndex];
-  const activeOptionId = activeItem
-    ? `${listId}-opt-${activeItem.item.id}`
-    : undefined;
-
   return (
     <main className="home-page">
-      <div className="home-search-wrap">
-        <div className="home-search-input-wrap">
-          <button
-            type="button"
-            className="home-search-leading-icon-button"
-            aria-label={strings.home.searchIconAria}
+      <Combobox<PaletteItem>
+        filter={filter}
+        onPick={(item) => enterApp(item.id)}
+        autoFocus
+        placeholder={strings.home.searchPlaceholder}
+        ariaLabel={strings.home.searchAria}
+        listVisible={isSuggestionOpen}
+        disabled={isRoutePending}
+        rowIdPrefix="home-palette"
+        classes={{
+          root: "home-search-wrap",
+          inputWrap: "home-search-input-wrap",
+          input: "command-palette-input home-search-input",
+          list: "command-palette-list home-search-list",
+          empty: "command-palette-empty",
+        }}
+        onInputFocus={() => setIsSuggestionOpen(true)}
+        onInputBlur={() => setIsSuggestionOpen(false)}
+        leadingSlot={
+          <HomeSearchLeadingIcon
             disabled={isRoutePending}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => pickAt(activeIndex)}
-          >
-            <Search size={16} strokeWidth={2} />
-          </button>
-          <input
-            ref={inputRef}
-            type="search"
-            className="command-palette-input home-search-input"
-            placeholder={strings.home.searchPlaceholder}
-            role="combobox"
-            aria-label={strings.home.searchAria}
-            aria-expanded={isSuggestionOpen}
-            aria-autocomplete="list"
-            aria-controls={listId}
-            aria-activedescendant={isSuggestionOpen ? activeOptionId : undefined}
-            autoComplete="off"
-            autoCorrect="off"
-            spellCheck={false}
-            disabled={isRoutePending}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onFocus={() => setIsSuggestionOpen(true)}
-            onBlur={() => setIsSuggestionOpen(false)}
-            onKeyDown={(e) => {
-              if (e.key === "ArrowDown") {
-                e.preventDefault();
-                if (filtered.length === 0) return;
-                setActiveIndex((i) => (i + 1) % filtered.length);
-              } else if (e.key === "ArrowUp") {
-                e.preventDefault();
-                if (filtered.length === 0) return;
-                setActiveIndex((i) => (i - 1 + filtered.length) % filtered.length);
-              } else if (e.key === "Enter") {
-                e.preventDefault();
-                pickAt(activeIndex);
-              }
+            onActivate={() => {
+              // click fires before blur on some browsers; explicit open keeps list accessible for keyboard users too.
+              setIsSuggestionOpen(true);
             }}
           />
-        </div>
-        {isSuggestionOpen ? (
-          <div
-            id={listId}
-            className="command-palette-list home-search-list"
-            role="listbox"
-            aria-label={strings.home.searchAria}
-          >
-            {filtered.length === 0 ? (
-              <div className="command-palette-empty" role="status">
-                {strings.commandPalette.empty}
-              </div>
-            ) : (
-              filtered.map(({ item }, index) => {
-                const active = index === activeIndex;
-                const titleMatchIndices = getTitleMatchIndices(query, item);
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    role="option"
-                    aria-selected={active}
-                    id={`${listId}-opt-${item.id}`}
-                    className={`command-palette-row${active ? " command-palette-row--active" : ""}`}
-                    disabled={isRoutePending}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => pickAt(index)}
-                    onMouseEnter={() => setActiveIndex(index)}
-                  >
-                    <AlgorithmTypeIcon iconKey={item.iconKey} />
-                    <HighlightedTitle
-                      title={item.title}
-                      matchIndices={titleMatchIndices}
-                    />
-                  </button>
-                );
-              })
-            )}
+        }
+        renderEmpty={() => (
+          <div className="command-palette-empty" role="status">
+            {strings.commandPalette.empty}
           </div>
-        ) : null}
-      </div>
+        )}
+        renderRow={({ row, query, active, onClick, onMouseEnter }) => {
+          const item = row.item;
+          const matchIndices = getTitleMatchIndices(query, item);
+          return (
+            <button
+              type="button"
+              className={`command-palette-row${active ? " command-palette-row--active" : ""}`}
+              disabled={isRoutePending}
+              onClick={onClick}
+              onMouseEnter={onMouseEnter}
+            >
+              <AlgorithmTypeIcon iconKey={item.iconKey} />
+              <HighlightedTitle
+                title={item.title}
+                matchIndices={matchIndices}
+              />
+            </button>
+          );
+        }}
+      />
       <BlockingLoadingOverlay
         active={isRoutePending}
         label={strings.loading.routeTransition}
       />
     </main>
+  );
+}
+
+function HomeSearchLeadingIcon({
+  disabled,
+  onActivate,
+}: {
+  disabled: boolean;
+  onActivate: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="home-search-leading-icon-button"
+      aria-label={strings.home.searchIconAria}
+      disabled={disabled}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={onActivate}
+      tabIndex={-1}
+    >
+      <Search size={16} strokeWidth={2} />
+    </button>
   );
 }

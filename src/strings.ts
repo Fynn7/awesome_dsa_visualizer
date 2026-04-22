@@ -27,6 +27,8 @@ export const strings = {
     pause: "Pause",
     step: "Step",
     stepBack: "Step back",
+    /** Reload demo script and jump to the last step (same baseline as Reset). */
+    jumpToEnd: "Jump to end",
     reset: "Reset",
     speed: "Speed",
     showEditor: "Editor",
@@ -51,6 +53,8 @@ export const strings = {
     enableAnimationScroll: "Enable animation panel scrollbars",
     animationFitAllowUpscale:
       "Scale diagram up to fill available space (when scrollbars are off)",
+    replayAnimationsOnStepBack:
+      "Replay animations when stepping backward (applies to all algorithms)",
     close: "Close",
   },
   panels: {

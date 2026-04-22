@@ -138,6 +138,9 @@ export function Workspace({
           variables={step.variables}
           algorithmId={state.algorithmId}
           stepLine={step.line}
+          stepIndex={state.stepIndex}
+          lastStepDirection={state.lastStepDirection}
+          replayAnimationsOnStepBack={state.replayAnimationsOnStepBack}
           showArrayIndices={state.showArrayIndices}
           enableAnimationScroll={state.enableAnimationScroll}
           animationFitAllowUpscale={state.animationFitAllowUpscale}

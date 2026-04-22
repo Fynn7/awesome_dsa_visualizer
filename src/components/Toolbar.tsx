@@ -8,6 +8,7 @@ import {
   StepBack,
   StepForward,
 } from "lucide-react";
+import { IconButton } from "@visualizer-ui";
 import type {
   ExecutionAction,
   ExecutionState,
@@ -48,6 +49,7 @@ export function Toolbar({
   const atEnd = state.stepIndex >= last;
   const atStart = state.stepIndex <= 0;
   const playDisabledAtEnd = atEnd && !state.playing;
+  const jumpToEndDisabled = atEnd && !state.codeDirty;
 
   const presetMs = nearestSpeedPresetMs(state.speedMs);
   const speedIdx = SPEED_PRESETS_MS.indexOf(presetMs);
@@ -63,9 +65,8 @@ export function Toolbar({
         </span>
       ) : null}
       <div className="toolbar-group">
-        <button
-          type="button"
-          className="btn btn-primary btn-icon"
+        <IconButton
+          variant="primary"
           disabled={playDisabledAtEnd}
           aria-label={
             state.playing ? strings.toolbar.pause : strings.toolbar.play
@@ -80,33 +81,34 @@ export function Toolbar({
           ) : (
             <Play {...ICON} aria-hidden />
           )}
-        </button>
-        <button
-          type="button"
-          className="btn btn-icon"
+        </IconButton>
+        <IconButton
           disabled={atStart}
           aria-label={strings.toolbar.stepBack}
           onClick={() => dispatch({ type: "STEP_BACK" })}
         >
           <StepBack {...ICON} aria-hidden />
-        </button>
-        <button
-          type="button"
-          className="btn btn-icon"
+        </IconButton>
+        <IconButton
           disabled={atEnd}
           aria-label={strings.toolbar.step}
           onClick={() => dispatch({ type: "STEP" })}
         >
           <StepForward {...ICON} aria-hidden />
-        </button>
-        <button
-          type="button"
-          className="btn btn-icon"
+        </IconButton>
+        <IconButton
+          disabled={jumpToEndDisabled}
+          aria-label={strings.toolbar.jumpToEnd}
+          onClick={() => dispatch({ type: "JUMP_TO_END" })}
+        >
+          <ChevronsRight {...ICON} aria-hidden />
+        </IconButton>
+        <IconButton
           aria-label={strings.toolbar.reset}
           onClick={() => dispatch({ type: "RESET" })}
         >
           <RotateCcw {...ICON} aria-hidden />
-        </button>
+        </IconButton>
       </div>
 
       <div className="toolbar-sep" aria-hidden />

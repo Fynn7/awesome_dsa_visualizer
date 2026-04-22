@@ -2,7 +2,10 @@ import {
   type AlgorithmId,
   type MockStep,
 } from "./mockTrace";
-import { resolveAlgorithmAnchorLine } from "./algorithmLineAnchors";
+import {
+  resolveAlgorithmAnchorLine,
+  resolveAlgorithmAnchorOffset,
+} from "./algorithmLineAnchors";
 import { selectionSortedExclusiveEnd } from "./selectionSortedPrefix";
 import { isSelectionJInactivePhase } from "./selectionPointerPhase";
 
@@ -17,12 +20,35 @@ type JInactiveContext = {
   jIndex: number | undefined;
 };
 
+/**
+ * Per-algorithm line anchors that drive DSU cue animations in AnimationPanel:
+ * - `scanLine`        Quick Find - Full: the `for i in range(n)` scan pass;
+ *                     a "scan" pulse highlights the current `i`.
+ * - `findWhileLine`   Quick Union - Full: the `while i != self.id[i]` check;
+ *                     a "trace" pulse highlights the current `i`.
+ * - `findAdvanceLine` Quick Union - Full: the `i = self.id[i]` advance step;
+ *                     a "trace" pulse highlights both endpoints and the edge.
+ * Undefined keys mean the algorithm has no cue of that kind (default).
+ */
+export type DsuCueLines = {
+  scanLine?: number;
+  findWhileLine?: number;
+  findAdvanceLine?: number;
+};
+
 export type AlgorithmVisualSpec = {
   inferJMinus1FromHighlights: boolean;
   getSortedExclusiveEnd: (ctx: SortedRangeContext) => number | undefined;
   isJInactivePhase: (ctx: JInactiveContext) => boolean;
   /** Which traces should define fit-envelope measurement for this algorithm. */
   envelopeTraceIds: readonly AlgorithmId[];
+  /**
+   * When true, Quick Union tree layout applies: node slots take part in the
+   * FLIP reflow, and edges render as `<line>` with transitioning endpoints.
+   */
+  usesQuickUnionTreeLayout: boolean;
+  /** See {@link DsuCueLines}. Omitted (undefined) when there are no DSU cues. */
+  dsuCueLines?: DsuCueLines;
 };
 
 export type AlgorithmIconKey =
@@ -60,6 +86,7 @@ const ALGORITHM_SPECS: Record<AlgorithmId, AlgorithmSpec> = {
       },
       isJInactivePhase: noJInactivePhase,
       envelopeTraceIds: BAR_SORT_PAIR_ENVELOPE_IDS,
+      usesQuickUnionTreeLayout: false,
     },
   },
   selection: {
@@ -76,6 +103,7 @@ const ALGORITHM_SPECS: Record<AlgorithmId, AlgorithmSpec> = {
         return isSelectionJInactivePhase("selection", stepLine, jIndex);
       },
       envelopeTraceIds: BAR_SORT_PAIR_ENVELOPE_IDS,
+      usesQuickUnionTreeLayout: false,
     },
   },
   "quick-find": {
@@ -89,6 +117,7 @@ const ALGORITHM_SPECS: Record<AlgorithmId, AlgorithmSpec> = {
       getSortedExclusiveEnd: () => undefined,
       isJInactivePhase: noJInactivePhase,
       envelopeTraceIds: SINGLE_TRACE_ENVELOPE_IDS,
+      usesQuickUnionTreeLayout: false,
     },
   },
   "quick-find-full": {
@@ -102,6 +131,10 @@ const ALGORITHM_SPECS: Record<AlgorithmId, AlgorithmSpec> = {
       getSortedExclusiveEnd: () => undefined,
       isJInactivePhase: noJInactivePhase,
       envelopeTraceIds: SINGLE_TRACE_ENVELOPE_IDS,
+      usesQuickUnionTreeLayout: false,
+      dsuCueLines: {
+        scanLine: resolveAlgorithmAnchorOffset("quick-find", "unionDef", 3),
+      },
     },
   },
   "quick-union": {
@@ -115,6 +148,7 @@ const ALGORITHM_SPECS: Record<AlgorithmId, AlgorithmSpec> = {
       getSortedExclusiveEnd: () => undefined,
       isJInactivePhase: noJInactivePhase,
       envelopeTraceIds: SINGLE_TRACE_ENVELOPE_IDS,
+      usesQuickUnionTreeLayout: true,
     },
   },
   "quick-union-full": {
@@ -128,6 +162,14 @@ const ALGORITHM_SPECS: Record<AlgorithmId, AlgorithmSpec> = {
       getSortedExclusiveEnd: () => undefined,
       isJInactivePhase: noJInactivePhase,
       envelopeTraceIds: SINGLE_TRACE_ENVELOPE_IDS,
+      usesQuickUnionTreeLayout: true,
+      dsuCueLines: {
+        findWhileLine: resolveAlgorithmAnchorLine("quick-union", "findWhile"),
+        findAdvanceLine: resolveAlgorithmAnchorLine(
+          "quick-union",
+          "findAdvance"
+        ),
+      },
     },
   },
 };
