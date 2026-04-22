@@ -87,6 +87,7 @@ export type ExecutionAction =
   | { type: "STEP" }
   | { type: "STEP_BACK" }
   | { type: "RESET" }
+  | { type: "JUMP_TO_END" }
   | { type: "PLAY" }
   | { type: "PAUSE" }
   | { type: "TICK" }
@@ -138,6 +139,22 @@ export function executionReducer(
         loopPulseRules: demo.loopPulseRules,
         stepIndex: 0,
         consoleLines: recomputeConsole(demo.trace, 0),
+        source: demo.source,
+        baselineSource: demo.source,
+        codeDirty: false,
+        playing: false,
+        toast: null,
+      };
+    }
+    case "JUMP_TO_END": {
+      const demo = getAlgorithmDemo(state.algorithmId);
+      const endIndex = Math.max(0, demo.trace.length - 1);
+      return {
+        ...state,
+        trace: demo.trace,
+        loopPulseRules: demo.loopPulseRules,
+        stepIndex: endIndex,
+        consoleLines: recomputeConsole(demo.trace, endIndex),
         source: demo.source,
         baselineSource: demo.source,
         codeDirty: false,

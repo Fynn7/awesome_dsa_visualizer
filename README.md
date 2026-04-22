@@ -11,6 +11,7 @@ A browser-based visualization tool for teaching university-level data structures
 - **Teaching-focused workspace**
   - Resizable layout with panels for **Code**, **Console**, **Animation**, **Variables**, and an optional **PDF** panel for problem statements.
   - All panels can be shown/hidden via the toolbar, with an empty-state hint when everything is hidden.
+  - Toolbar playback: **Jump to end** reloads the built-in demo script for the current algorithm (same baseline restore as **Reset**) and moves execution to the **last** step; **Reset** restores that baseline at the **first** step. The same controls appear in presentation mode.
 - **Command palette and keyboard shortcuts**
   - Command palette to switch demos and scenarios (`Ctrl+Shift+P` / `Cmd+Shift+P`).
   - Dedicated shortcuts help overlay (opened with the `?` key) describing play/pause, step, and exit controls.
@@ -29,6 +30,7 @@ A browser-based visualization tool for teaching university-level data structures
 
 ### Union-Find Exercise Traces
 
+- **Voiceover / speaker spec** (step tables, semantics, and access-count rules aligned with the animations): [docs/union-find-voiceover-spec.md](docs/union-find-voiceover-spec.md).
 - Both demos use the same precomputed operation sequence `(9,0) (3,4) (5,8) (7,2) (2,1) (5,7) (0,3) (4,2)` and the same displayed source (synced with `src_py/uebung1.py`, including `connected` and the input loop).
 - **Quick Find** (`algorithm=quick-find`): each `union()` is shown as two steps: a pre-union cue frame (pulse-highlight operated nodes) followed by one completed-union frame; animation captions for the union-result frame show only the `union(p,q)` call in inline code style; console logs are union summaries only (no per-`i` scan lines); the code panel highlights the `def union(self, p, q):` line on each cue/result step; `array_accesses` in Variables remains the union total on result steps (cue steps keep `0`).
 - **Quick Find - Full Trace** (`algorithm=quick-find-full`): same DSU rules and final numbers as today’s line-by-step trace inside `union`.
@@ -58,23 +60,23 @@ A browser-based visualization tool for teaching university-level data structures
 > Node.js 20+ is required (router dependencies declare `engines.node >= 20.0.0`).
 
 1. **Install dependencies**
-   ```bash
+  ```bash
    npm install
    # or
    pnpm install
    # or
    yarn install
-   ```
+  ```
 2. **Start the development server**
-   ```bash
+  ```bash
    npm run dev
    # or the equivalent script for your package manager
-   ```
+  ```
 3. **Open the app**
-   - Visit `http://localhost:5173` (or whatever port your dev server reports) in a modern desktop browser.
-   - At `/`, use the search input to pick a demo and enter the visualizer at `/app`.
-   - You can also open `/app` directly to enter the full workspace.
-   - **Development only**: open `/app?crash=1` to intentionally render the route error recovery screen (remove the query to continue).
+  - Visit `http://localhost:5173` (or whatever port your dev server reports) in a modern desktop browser.
+  - At `/`, use the search input to pick a demo and enter the visualizer at `/app`.
+  - You can also open `/app` directly to enter the full workspace.
+  - **Development only**: open `/app?crash=1` to intentionally render the route error recovery screen (remove the query to continue).
 
 ## Deployment (Vercel)
 

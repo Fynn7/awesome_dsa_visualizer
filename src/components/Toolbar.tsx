@@ -102,6 +102,15 @@ export function Toolbar({
         <button
           type="button"
           className="btn btn-icon"
+          disabled={atEnd}
+          aria-label={strings.toolbar.jumpToEnd}
+          onClick={() => dispatch({ type: "JUMP_TO_END" })}
+        >
+          <ChevronsRight {...ICON} aria-hidden />
+        </button>
+        <button
+          type="button"
+          className="btn btn-icon"
           aria-label={strings.toolbar.reset}
           onClick={() => dispatch({ type: "RESET" })}
         >
