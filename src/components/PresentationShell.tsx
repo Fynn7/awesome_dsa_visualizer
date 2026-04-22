@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import { Pause, Play, StepBack, StepForward, X } from "lucide-react";
+import { IconButton } from "@visualizer-ui";
 import type { ExecutionAction, ExecutionState } from "../lib/executionReducer";
 import { getCurrentStep } from "../lib/executionReducer";
 import { strings } from "../strings";
@@ -155,14 +156,13 @@ export const PresentationShell = forwardRef<HTMLDivElement, Props>(
               {stepLabel}
             </span>
           </div>
-          <button
-            type="button"
-            className="btn btn-icon presentation-shell-exit"
+          <IconButton
+            className="presentation-shell-exit"
             aria-label={strings.presentation.exit}
             onClick={() => onExit()}
           >
             <X {...ICON} aria-hidden />
-          </button>
+          </IconButton>
         </div>
         <div className="presentation-shell-toolbar">
           <Toolbar

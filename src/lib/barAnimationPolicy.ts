@@ -2,7 +2,7 @@ import {
   MOTION_CLEANUP_BUFFER_MS,
   MOTION_EASING_EMPHASIZED,
   MOTION_MIN_DELTA_PX,
-} from "./motionTokens";
+} from "../design/motionTokens";
 
 const BAR_ASSIGNING_CLASS = "viz-bar--assigning";
 const BAR_ASSIGN_DURATION_CSS_VAR = "--viz-assign-duration";

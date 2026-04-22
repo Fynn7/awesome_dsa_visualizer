@@ -1,7 +1,7 @@
 import {
   MOTION_EASING_EMPHASIZED,
   MOTION_MIN_DELTA_PX,
-} from "./motionTokens";
+} from "../design/motionTokens";
 
 export const POINTER_MOVE_EASING = MOTION_EASING_EMPHASIZED;
 export const POINTER_MOVE_MIN_DELTA_PX = MOTION_MIN_DELTA_PX;

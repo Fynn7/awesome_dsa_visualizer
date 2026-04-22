@@ -118,8 +118,12 @@ Developer maintenance note:
 - Quick Union tree step-transition animation (node slot positions + edge endpoints driven by one interpolation loop) is centralized in `src/lib/dsuTreeAnimation.ts`.
 - Bar identity reuse/derivation is centralized in `src/lib/visualBars.ts`.
 - Bar/pointer tone-to-class mapping is centralized in `src/lib/visualToneClassMap.ts`.
-- Shared animation tokens (easing/threshold/buffer) are centralized in `src/lib/motionTokens.ts`.
+- Shared animation tokens (easing/threshold/buffer/duration/UI-transition timings) are centralized in `src/design/motionTokens.ts`; `src/lib/motionTokens.ts` is a legacy re-export shim that forwards to the design source.
+- Color, typography, and scrollbar tokens are centralized in `src/design/tokens.ts`; the `viteDesignTokensPlugin` in `src/design/viteDesignTokensPlugin.ts` generates a `:root` CSS variable block at the `@design-tokens-root` sentinel in `src/index.css` at build/dev time. Never hand-edit those variables in CSS — edit the TypeScript source.
 - The Step Back replay vs. snap decision (forward/back/instant gate) is centralized in `src/lib/motionDirectionGate.ts` (`shouldPlayTransitions`); it is the one place all animation categories consult before priming FLIPs or keyframes.
+- The `AnimationPanel` orchestrator in `src/components/AnimationPanel.tsx` composes `src/components/animation/DsuGraph.tsx` (DSU node + edge renderer), `src/components/animation/DsuNodeSlot.tsx`, `src/components/animation/CaptionLine.tsx`, plus helpers in `src/components/animation/dsuEdgeHelpers.ts`, `src/components/animation/quickUnionTreeLayout.ts`, and `src/components/animation/animationAriaHelpers.ts`. Pure renderers and layout math live in `src/components/animation/`; animation effect scheduling remains in the orchestrator so shared refs and run-guards stay in one place.
+- Global overlay coordination (command palette, settings, keyboard help) is owned by `src/providers/OverlayProvider.tsx` (`useOverlayManager` hook). UI preferences persist via `src/lib/uiPreferencesStorage.ts`.
+- Internal UI primitives (Button / IconButton / Switch / Dialog / Combobox / Toast / PanelCard) live under `shared/visualizer-ui/primitives/` and are re-exported via `shared/visualizer-ui/index.ts` (`@visualizer-ui` alias). They wrap Radix UI headless primitives and consume the shared CSS variable tokens. Hand-written modal shells, focus traps, and inline-styled toggles were removed in favor of these primitives; do not reintroduce a second implementation.
 - To change one animation category across all algorithms and all steps, edit the corresponding module above and keep `AnimationPanel` consuming those helpers only.
 
 `README.md` is the single source of truth for current entry flow and routing behavior.

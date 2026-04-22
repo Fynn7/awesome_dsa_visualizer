@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   splitCaptionByBackticks,
   stripCaptionBackticks,
-} from "@visualizer-ui";
+} from "./captionUtils";
 
 describe("captionInlineCode", () => {
   it("splits on backticks", () => {

@@ -2,8 +2,6 @@ import { AppWindow, Maximize2 } from "lucide-react";
 import {
   getAlgorithmDemo,
   type AlgorithmId,
-  type DsuGraphEdge,
-  type DsuGraphNode,
   type MockDsuGraphViz,
   type MockVizModel,
   type MockStep,
@@ -17,7 +15,6 @@ import {
 import {
   layoutPointerOverlayCenters,
   resolveArrayPointers,
-  type ResolvedArrayPointers,
 } from "../lib/parseArrayPointers";
 import { barToneForIndex } from "../lib/vizBarTone";
 import {
@@ -88,25 +85,24 @@ import {
   type VisualBar,
 } from "../lib/visualBars";
 import {
-  buildDsuOrthogonalPolylinePoints,
-  dsuRow0LaneIndex,
-  dsuRow1LongEdgeGutterY,
-  dsuEdgeEuclideanLength,
-  dsuPointsToSmoothPathD,
-  DSU_LONG_EDGE_THRESHOLD_PX,
   DSU_NODE_RADIUS_PX,
-  DSU_SVG_VIEW_HEIGHT,
-  DSU_SVG_VIEW_WIDTH,
-  getDsuNodePosition,
-  pointOnCircleToward,
   type DsuPoint,
 } from "../lib/dsuGraphLayout";
 import { strings } from "../strings";
 import { PanelSkeleton } from "./LoadingState";
+import { stripCaptionBackticks } from "../lib/captionUtils";
+import { IconButton, Switch } from "@visualizer-ui";
+import { DsuGraph } from "./animation/DsuGraph";
+import { CaptionLine } from "./animation/CaptionLine";
 import {
-  splitCaptionByBackticks,
-  stripCaptionBackticks,
-} from "@visualizer-ui";
+  buildDsuGraphAriaLabel,
+  buildVizAriaLabel,
+} from "./animation/animationAriaHelpers";
+import {
+  dsuEdgeKey,
+  quickUnionEdgeRefKey,
+} from "./animation/dsuEdgeHelpers";
+import { buildQuickUnionTreePositions } from "./animation/quickUnionTreeLayout";
 import type { CSSProperties, MouseEvent } from "react";
 import {
   useCallback,
@@ -152,450 +148,6 @@ const PRESENT_ICON = { size: 16, strokeWidth: 2 } as const;
 
 /** Caps viz zoom when the panel is large and the diagram is tiny (rem-based layout). */
 const MAX_VIZ_UPSCALE = 6;
-
-function buildVizAriaLabel(
-  caption: string,
-  pointers: ResolvedArrayPointers,
-  length: number,
-  minIndex?: number
-): string {
-  const parts = [caption];
-  if (pointers.i !== undefined) parts.push(`i at index ${pointers.i}`);
-  if (pointers.j !== undefined) parts.push(`j at index ${pointers.j}`);
-  if (pointers.jMinus1 !== undefined) {
-    parts.push(`j minus 1 at index ${pointers.jMinus1}`);
-  }
-  if (typeof minIndex === "number" && minIndex >= 0) {
-    parts.push(`min at index ${minIndex}`);
-  }
-  if (length > 0) {
-    parts.push(`length ${length}, indices 0 to ${length - 1}`);
-  }
-  return parts.join(". ");
-}
-
-function buildDsuGraphAriaLabel(viz: MockDsuGraphViz): string {
-  const active =
-    viz.activeEdge !== undefined
-      ? `Current union edge ${viz.activeEdge.from} to ${viz.activeEdge.to}. `
-      : "";
-  const idPart = viz.nodes.map((n) => `id[${n.id}]=${n.group}`).join(", ");
-  const captionPlain = stripCaptionBackticks(viz.caption);
-  return `${captionPlain}. ${active}${idPart}. ${viz.nodes.length} nodes, ${viz.edges.length} edges.`;
-}
-
-function dsuGroupClass(group: number): string {
-  const paletteSlots = 10;
-  const normalized = ((group % paletteSlots) + paletteSlots) % paletteSlots;
-  return `viz-dsu-node--group-${normalized}`;
-}
-
-/**
- * Local compaction for unary vertical chains in quick-union tree layout.
- * Keep enough separation to avoid overlap while preventing overlong links.
- */
-const QUICK_UNION_UNARY_TARGET_GAP_PX = DSU_NODE_RADIUS_PX * 3.1;
-const QUICK_UNION_UNARY_MIN_GAP_PX = DSU_NODE_RADIUS_PX * 2.45;
-const QUICK_UNION_TREE_HORIZONTAL_PADDING_PX = 26;
-const QUICK_UNION_TREE_TOP_PADDING_PX = 38;
-const QUICK_UNION_TREE_BOTTOM_PADDING_PX = 30;
-
-function buildQuickUnionTreePositions(values: readonly number[]): Map<number, DsuPoint> {
-  const n = values.length;
-  const children = new Map<number, number[]>();
-  const roots: number[] = [];
-  for (let i = 0; i < n; i += 1) {
-    children.set(i, []);
-  }
-  for (let i = 0; i < n; i += 1) {
-    const parent = values[i]!;
-    if (parent === i) {
-      roots.push(i);
-    } else {
-      children.get(parent)?.push(i);
-    }
-  }
-  roots.sort((a, b) => a - b);
-  for (const entry of children.values()) {
-    entry.sort((a, b) => a - b);
-  }
-
-  const subtreeWidth = new Map<number, number>();
-  const depthMap = new Map<number, number>();
-  let maxDepth = 0;
-  const calcWidth = (node: number, depth: number): number => {
-    depthMap.set(node, depth);
-    if (depth > maxDepth) maxDepth = depth;
-    const kids = children.get(node) ?? [];
-    if (kids.length === 0) {
-      subtreeWidth.set(node, 1);
-      return 1;
-    }
-    let sum = 0;
-    for (const kid of kids) {
-      sum += calcWidth(kid, depth + 1);
-    }
-    const w = Math.max(1, sum);
-    subtreeWidth.set(node, w);
-    return w;
-  };
-
-  let totalUnits = 0;
-  for (const root of roots) {
-    totalUnits += calcWidth(root, 0);
-  }
-  const units = Math.max(totalUnits, 1);
-  const padX = QUICK_UNION_TREE_HORIZONTAL_PADDING_PX;
-  const usableW = DSU_SVG_VIEW_WIDTH - padX * 2;
-  const unitW = usableW / units;
-
-  const depthLevels = Math.max(maxDepth + 1, 1);
-  const topY = QUICK_UNION_TREE_TOP_PADDING_PX;
-  const bottomY = DSU_SVG_VIEW_HEIGHT - QUICK_UNION_TREE_BOTTOM_PADDING_PX;
-  const levelGap = depthLevels === 1 ? 0 : (bottomY - topY) / (depthLevels - 1);
-  const positions = new Map<number, DsuPoint>();
-
-  const place = (node: number, startUnit: number) => {
-    const kids = children.get(node) ?? [];
-    const width = subtreeWidth.get(node) ?? 1;
-    const centerUnit = startUnit + width / 2;
-    const depth = depthMap.get(node) ?? 0;
-    positions.set(node, {
-      x: padX + centerUnit * unitW,
-      y: topY + depth * levelGap,
-    });
-    let cursor = startUnit;
-    for (const kid of kids) {
-      const kidWidth = subtreeWidth.get(kid) ?? 1;
-      place(kid, cursor);
-      cursor += kidWidth;
-    }
-  };
-
-  let cursor = 0;
-  for (const root of roots) {
-    const width = subtreeWidth.get(root) ?? 1;
-    place(root, cursor);
-    cursor += width;
-  }
-
-  // Compress unary chains so each parent-child edge keeps the same compact gap.
-  for (let parent = 0; parent < n; parent += 1) {
-    const kids = children.get(parent) ?? [];
-    if (kids.length !== 1) continue;
-    const onlyChild = kids[0]!;
-    const parentPos = positions.get(parent);
-    const childPos = positions.get(onlyChild);
-    if (!parentPos || !childPos) continue;
-    const currentGap = childPos.y - parentPos.y;
-    if (currentGap <= QUICK_UNION_UNARY_TARGET_GAP_PX) continue;
-    const nextGap = Math.max(
-      QUICK_UNION_UNARY_MIN_GAP_PX,
-      QUICK_UNION_UNARY_TARGET_GAP_PX
-    );
-    positions.set(onlyChild, {
-      x: childPos.x,
-      y: parentPos.y + nextGap,
-    });
-  }
-
-  return positions;
-}
-
-type DsuNodeSlotRefCallback = (
-  nodeId: number,
-  el: HTMLDivElement | null
-) => void;
-
-/**
- * Registers a DSU edge `<line>` or `<path>` element by its stable key
- * with the animation driver (see `dsuTreeAnimation.ts`). The driver writes
- * endpoint attributes during the unified interpolation loop.
- */
-type DsuEdgeRefCallback = (
-  key: string,
-  el: SVGLineElement | null
-) => void;
-
-function DsuNodeSlot({
-  node,
-  active,
-  preUnionPulse,
-  scanCue,
-  traceCue,
-  groupClass,
-  position,
-  previousGroup,
-  numberFlipKey,
-  slotRefCallback,
-}: {
-  node: DsuGraphNode;
-  active: boolean;
-  preUnionPulse: boolean;
-  scanCue: boolean;
-  traceCue: boolean;
-  groupClass: string;
-  position?: DsuPoint;
-  /**
-   * When the id[i] value changed between steps and animations should play,
-   * we render an "outgoing" previous-value label alongside the new one so
-   * they crossfade. When undefined, only the current value is rendered.
-   */
-  previousGroup?: number;
-  /** Key to remount the idval spans per step so the keyframes restart. */
-  numberFlipKey: string;
-  slotRefCallback?: DsuNodeSlotRefCallback;
-}) {
-  const pos = position ?? getDsuNodePosition(node.id);
-  const showOutgoing =
-    previousGroup !== undefined && previousGroup !== node.group;
-  return (
-    <div
-      className="viz-dsu-node-slot"
-      style={{ left: `${pos.x}px`, top: `${pos.y}px` }}
-      ref={(el) => slotRefCallback?.(node.id, el)}
-    >
-      <div
-        className={`viz-dsu-node ${groupClass}${active ? " viz-dsu-node--active" : ""}${
-          preUnionPulse ? " viz-dsu-node--pre-union-pulse" : ""
-        }${scanCue ? " viz-dsu-node--scan" : ""}${
-          traceCue ? " viz-dsu-node--trace" : ""
-        }`}
-      >
-        {node.id}
-      </div>
-      {showOutgoing ? (
-        <span
-          key={`${numberFlipKey}-out`}
-          className="viz-dsu-node-idval viz-dsu-node-idval--outgoing"
-          aria-hidden
-        >
-          {previousGroup}
-        </span>
-      ) : null}
-      <span
-        key={`${numberFlipKey}-in`}
-        className={`viz-dsu-node-idval${showOutgoing ? " viz-dsu-node-idval--incoming" : ""}`}
-        aria-hidden
-      >
-        {node.group}
-      </span>
-    </div>
-  );
-}
-
-type DsuGraphRenderModel = {
-  nodes: readonly DsuGraphNode[];
-  edges: readonly DsuGraphEdge[];
-  uniformEdgeColor?: boolean;
-  activeEdge?: DsuGraphEdge;
-  highlightIndices?: readonly number[];
-};
-
-function dsuEdgeClassName(
-  forceUniform: boolean,
-  isActive: boolean,
-  isLong: boolean,
-  emphasizeActiveEdge: boolean,
-  extraClass?: string
-): string {
-  let base: string;
-  if (forceUniform) {
-    base = "viz-dsu-edge";
-  } else if (emphasizeActiveEdge && isActive) {
-    base = "viz-dsu-edge viz-dsu-edge--active";
-  } else if (isLong) {
-    base = "viz-dsu-edge viz-dsu-edge--muted";
-  } else {
-    base = "viz-dsu-edge";
-  }
-  return extraClass ? `${base} ${extraClass}` : base;
-}
-
-/** Key for diffing edges between steps; must match activeEdge key format. */
-function dsuEdgeKey(edge: { from: number; to: number }): string {
-  return `${edge.from}->${edge.to}`;
-}
-
-/** Stable React / ref key for a Quick Union tree edge; child id is unique. */
-function quickUnionEdgeRefKey(edge: { from: number }): string {
-  return `qu-edge-${edge.from}`;
-}
-
-/** Stable React / ref key for a Quick Find union edge. */
-function quickFindEdgeRefKey(edge: { from: number; to: number }): string {
-  return `qf-edge-${edge.from}-${edge.to}`;
-}
-
-function DsuGraph({
-  viz,
-  nodePositions,
-  showConnections,
-  useQuickUnionTreeLayout,
-  emphasizeActiveEdge,
-  preUnionPulse,
-  shouldPlay,
-  newEdgeKeys,
-  activeEdgeEntering,
-  traceEdgeKeys,
-  scanNodeIds,
-  traceNodeIds,
-  previousGroupById,
-  numberFlipKey,
-  slotRefCallback,
-  edgeRefCallback,
-}: {
-  viz: DsuGraphRenderModel;
-  nodePositions?: Map<number, DsuPoint> | null;
-  showConnections: boolean;
-  useQuickUnionTreeLayout: boolean;
-  emphasizeActiveEdge: boolean;
-  preUnionPulse: boolean;
-  shouldPlay: boolean;
-  newEdgeKeys?: ReadonlySet<string>;
-  activeEdgeEntering?: boolean;
-  traceEdgeKeys?: ReadonlySet<string>;
-  scanNodeIds?: ReadonlySet<number>;
-  traceNodeIds?: ReadonlySet<number>;
-  previousGroupById?: ReadonlyMap<number, number> | null;
-  numberFlipKey: string;
-  slotRefCallback?: DsuNodeSlotRefCallback;
-  edgeRefCallback?: DsuEdgeRefCallback;
-}) {
-  const highlightedNodeIds = new Set(viz.highlightIndices ?? []);
-  return (
-    <>
-      {showConnections ? (
-        <svg
-          className="viz-dsu-edges"
-          viewBox={`0 0 ${DSU_SVG_VIEW_WIDTH} ${DSU_SVG_VIEW_HEIGHT}`}
-          preserveAspectRatio="xMidYMid meet"
-          aria-hidden
-        >
-          {viz.edges.map((edge, idx) => {
-            const fromPos =
-              nodePositions?.get(edge.from) ?? getDsuNodePosition(edge.from);
-            const toPos =
-              nodePositions?.get(edge.to) ?? getDsuNodePosition(edge.to);
-            const isActive =
-              viz.activeEdge?.from === edge.from &&
-              viz.activeEdge?.to === edge.to;
-            const isLong =
-              dsuEdgeEuclideanLength(edge.from, edge.to) >
-              DSU_LONG_EDGE_THRESHOLD_PX;
-            const forceUniform = viz.uniformEdgeColor === true;
-            const edgeKeyStr = dsuEdgeKey(edge);
-            const isNew =
-              shouldPlay && newEdgeKeys !== undefined && newEdgeKeys.has(edgeKeyStr);
-            const isActiveEnter =
-              shouldPlay &&
-              activeEdgeEntering === true &&
-              isActive;
-            const isTrace =
-              shouldPlay &&
-              traceEdgeKeys !== undefined &&
-              traceEdgeKeys.has(edgeKeyStr);
-            if (useQuickUnionTreeLayout) {
-              // Direction contract (also enforced by dsuTreeAnimation): x1/y1
-              // lands on the parent (edge.to) circle, x2/y2 on the child
-              // (edge.from) circle, so the stroke-dashoffset draw-in reveals
-              // the line from parent toward child.
-              const parentSide = pointOnCircleToward(
-                toPos,
-                fromPos,
-                DSU_NODE_RADIUS_PX
-              );
-              const childSide = pointOnCircleToward(
-                fromPos,
-                toPos,
-                DSU_NODE_RADIUS_PX
-              );
-              const refKey = quickUnionEdgeRefKey(edge);
-              return (
-                <line
-                  key={refKey}
-                  ref={(el) => edgeRefCallback?.(refKey, el)}
-                  x1={parentSide.x}
-                  y1={parentSide.y}
-                  x2={childSide.x}
-                  y2={childSide.y}
-                  pathLength={1}
-                  className={dsuEdgeClassName(
-                    forceUniform,
-                    isActive,
-                    isLong,
-                    emphasizeActiveEdge,
-                    "viz-dsu-edge--qu-tree"
-                  )}
-                  data-edge-new={isNew ? "true" : undefined}
-                  data-edge-active-enter={isActiveEnter ? "true" : undefined}
-                  data-edge-trace={isTrace ? "true" : undefined}
-                />
-              );
-            }
-            // Quick Find <path>: reverse polyline arg order so the path's M
-            // start point lands at edge.to (the q-side / receiver) and its
-            // tail ends at edge.from (the p-side / joiner). stroke-dashoffset
-            // 1 -> 0 then reveals the stroke from q toward p.
-            const points = buildDsuOrthogonalPolylinePoints(
-              edge.to,
-              edge.from,
-              undefined,
-              {
-                // Lane helpers still index the original edge list; routing is
-                // direction-independent because the polyline is symmetric.
-                row0LaneIndex: dsuRow0LaneIndex(viz.edges, idx),
-                row1LongEdgeGutterY: dsuRow1LongEdgeGutterY(viz.edges, idx),
-              }
-            );
-            return (
-              <path
-                key={quickFindEdgeRefKey(edge)}
-                d={dsuPointsToSmoothPathD(points)}
-                fill="none"
-                pathLength={1}
-                className={dsuEdgeClassName(
-                  forceUniform,
-                  isActive,
-                  isLong,
-                  emphasizeActiveEdge
-                )}
-                data-edge-new={isNew ? "true" : undefined}
-                data-edge-active-enter={isActiveEnter ? "true" : undefined}
-                data-edge-trace={isTrace ? "true" : undefined}
-              />
-            );
-          })}
-        </svg>
-      ) : null}
-      {viz.nodes.map((node) => {
-        const isHighlighted = highlightedNodeIds.has(node.id);
-        const prevGroup = shouldPlay
-          ? previousGroupById?.get(node.id)
-          : undefined;
-        return (
-          <DsuNodeSlot
-            key={node.id}
-            node={node}
-            active={isHighlighted}
-            preUnionPulse={preUnionPulse && isHighlighted}
-            scanCue={
-              shouldPlay && scanNodeIds !== undefined && scanNodeIds.has(node.id)
-            }
-            traceCue={
-              shouldPlay && traceNodeIds !== undefined && traceNodeIds.has(node.id)
-            }
-            groupClass={dsuGroupClass(node.group)}
-            position={nodePositions?.get(node.id)}
-            previousGroup={prevGroup}
-            numberFlipKey={numberFlipKey}
-            slotRefCallback={slotRefCallback}
-          />
-        );
-      })}
-    </>
-  );
-}
 
 export function AnimationPanel({
   trace,
@@ -735,10 +287,6 @@ export function AnimationPanel({
     () => formatVizCaptionForDisplay(viz.caption, variables),
     [viz.caption, variables]
   );
-  const captionParts = useMemo(
-    () => splitCaptionByBackticks(displayCaption),
-    [displayCaption]
-  );
   const vizMinIndex = "minIndex" in viz ? viz.minIndex : undefined;
   const maxVal = Math.max(1, ...viz.values);
   const showMinRow = typeof vizMinIndex === "number" && vizMinIndex >= 0;
@@ -755,7 +303,7 @@ export function AnimationPanel({
       if (step.viz.kind === "dsuGraph") {
         return {
           kind: "dsuGraph" as const,
-          captionParts: splitCaptionByBackticks(displayStepCaption),
+          captionText: displayStepCaption,
           values: step.viz.values,
           nodes: step.viz.nodes,
           edges: step.viz.edges,
@@ -764,7 +312,7 @@ export function AnimationPanel({
       }
       return {
         kind: "bars" as const,
-        captionParts: splitCaptionByBackticks(displayStepCaption),
+        captionText: displayStepCaption,
         values: step.viz.values,
         maxVal: Math.max(1, ...step.viz.values),
         showMinSlot:
@@ -1505,26 +1053,17 @@ export function AnimationPanel({
         {supportsDisplayConnections || onPresentNative || onPresentOverlay ? (
           <div className="panel-head-actions">
             {supportsDisplayConnections ? (
-              <label className="panel-head-switch">
-                <input
-                  type="checkbox"
-                  className="panel-head-switch-input"
-                  checked={displayConnections}
-                  onChange={(e) => onDisplayConnectionsChange?.(e.target.checked)}
-                  aria-label={strings.panels.displayConnections}
-                />
-                <span className="panel-head-switch-track" aria-hidden>
-                  <span className="panel-head-switch-knob" />
-                </span>
-                <span className="panel-head-switch-label">
-                  {strings.panels.displayConnections}
-                </span>
-              </label>
+              <Switch
+                size="sm"
+                label={strings.panels.displayConnections}
+                checked={displayConnections}
+                onCheckedChange={(value) => onDisplayConnectionsChange?.(value)}
+                ariaLabel={strings.panels.displayConnections}
+              />
             ) : null}
             {onPresentNative ? (
-              <button
-                type="button"
-                className="btn btn-icon panel-head-present"
+              <IconButton
+                className="panel-head-present"
                 aria-label={strings.presentation.presentNative}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -1532,12 +1071,11 @@ export function AnimationPanel({
                 }}
               >
                 <Maximize2 {...PRESENT_ICON} aria-hidden />
-              </button>
+              </IconButton>
             ) : null}
             {onPresentOverlay ? (
-              <button
-                type="button"
-                className="btn btn-icon panel-head-present"
+              <IconButton
+                className="panel-head-present"
                 aria-label={strings.presentation.presentOverlay}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -1545,7 +1083,7 @@ export function AnimationPanel({
                 }}
               >
                 <AppWindow {...PRESENT_ICON} aria-hidden />
-              </button>
+              </IconButton>
             ) : null}
           </div>
         ) : null}
@@ -1603,19 +1141,10 @@ export function AnimationPanel({
                     ref={fitMeasureRef}
                     style={fixedBundleStyle}
                   >
-                    <p
-                      className={`viz-caption${!enableAnimationScroll ? " viz-caption--fit" : ""}`}
-                    >
-                      {captionParts.map((seg, idx) =>
-                        seg.code ? (
-                          <code key={idx} className="viz-caption-code">
-                            {seg.text}
-                          </code>
-                        ) : (
-                          <span key={idx}>{seg.text}</span>
-                        )
-                      )}
-                    </p>
+                    <CaptionLine
+                      caption={displayCaption}
+                      fitMode={!enableAnimationScroll}
+                    />
                     <div
                       className={dsuViz ? "viz-dsu-graph" : "viz-bars"}
                       ref={barsTrackRef}
@@ -1769,17 +1298,7 @@ export function AnimationPanel({
           >
             {traceEnvelopeSteps.map((step) => (
               <div key={step.envelopeKey} className="viz-fit-scaled-bundle">
-                <p className="viz-caption viz-caption--fit">
-                  {step.captionParts.map((seg, idx) =>
-                    seg.code ? (
-                      <code key={idx} className="viz-caption-code">
-                        {seg.text}
-                      </code>
-                    ) : (
-                      <span key={idx}>{seg.text}</span>
-                    )
-                  )}
-                </p>
+                <CaptionLine caption={step.captionText} fitMode />
                 {step.kind === "dsuGraph" ? (
                   <div className="viz-dsu-graph" aria-hidden>
                     <DsuGraph
