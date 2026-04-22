@@ -5,7 +5,7 @@ import { MOTION_CSS_VAR_ENTRIES } from "./motionTokens";
 /**
  * Vite plugin: injects design tokens as a `:root` CSS variable block at the
  * top of every CSS module Vite processes that contains the sentinel comment
- * `/* @design-tokens-root *`/. There should be exactly one such sentinel in
+ * `@design-tokens-root` marker comment. There should be exactly one sentinel in
  * the project (`src/index.css`).
  *
  * Benefits:
@@ -27,7 +27,7 @@ export function viteDesignTokensPlugin(): Plugin {
       if (!id.endsWith(".css")) return null;
       if (!code.includes(SENTINEL)) return null;
       return {
-        code: code.replace(SENTINEL, rootBlock),
+        code: code.replace(SENTINEL, () => rootBlock),
         map: null,
       };
     },

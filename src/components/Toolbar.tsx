@@ -49,6 +49,7 @@ export function Toolbar({
   const atEnd = state.stepIndex >= last;
   const atStart = state.stepIndex <= 0;
   const playDisabledAtEnd = atEnd && !state.playing;
+  const jumpToEndDisabled = atEnd && !state.codeDirty;
 
   const presetMs = nearestSpeedPresetMs(state.speedMs);
   const speedIdx = SPEED_PRESETS_MS.indexOf(presetMs);
@@ -96,7 +97,7 @@ export function Toolbar({
           <StepForward {...ICON} aria-hidden />
         </IconButton>
         <IconButton
-          disabled={atEnd}
+          disabled={jumpToEndDisabled}
           aria-label={strings.toolbar.jumpToEnd}
           onClick={() => dispatch({ type: "JUMP_TO_END" })}
         >

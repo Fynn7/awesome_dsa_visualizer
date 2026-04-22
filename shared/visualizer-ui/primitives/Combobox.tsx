@@ -1,7 +1,7 @@
 import type {
   ChangeEvent,
   FocusEvent,
-  HTMLAttributes,
+  InputHTMLAttributes,
   KeyboardEvent,
   MouseEvent,
   ReactNode,
@@ -92,7 +92,7 @@ export type ComboboxProps<Item> = {
   onInputBlur?: (e: FocusEvent<HTMLInputElement>) => void;
   /** Forwarded attributes on the input element. */
   inputExtraProps?: Omit<
-    HTMLAttributes<HTMLInputElement>,
+    InputHTMLAttributes<HTMLInputElement>,
     "role" | "aria-expanded" | "aria-controls" | "aria-activedescendant"
   >;
   /** Optional leading slot rendered inside the input row (e.g. search icon). */

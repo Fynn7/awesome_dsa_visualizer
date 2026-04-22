@@ -101,23 +101,31 @@ export function buildQuickUnionTreePositions(
     cursor += width;
   }
 
-  for (let parent = 0; parent < n; parent += 1) {
-    const kids = children.get(parent) ?? [];
-    if (kids.length !== 1) continue;
-    const onlyChild = kids[0]!;
-    const parentPos = positions.get(parent);
-    const childPos = positions.get(onlyChild);
-    if (!parentPos || !childPos) continue;
-    const currentGap = childPos.y - parentPos.y;
-    if (currentGap <= QUICK_UNION_UNARY_TARGET_GAP_PX) continue;
-    const nextGap = Math.max(
-      QUICK_UNION_UNARY_MIN_GAP_PX,
-      QUICK_UNION_UNARY_TARGET_GAP_PX
-    );
-    positions.set(onlyChild, {
-      x: childPos.x,
-      y: parentPos.y + nextGap,
-    });
+  const nextGap = Math.max(
+    QUICK_UNION_UNARY_MIN_GAP_PX,
+    QUICK_UNION_UNARY_TARGET_GAP_PX
+  );
+  // Iterate to convergence so unary-chain compaction is stable regardless of id order.
+  for (let pass = 0; pass < n; pass += 1) {
+    let changed = false;
+    for (let parent = 0; parent < n; parent += 1) {
+      const kids = children.get(parent) ?? [];
+      if (kids.length !== 1) continue;
+      const onlyChild = kids[0]!;
+      const parentPos = positions.get(parent);
+      const childPos = positions.get(onlyChild);
+      if (!parentPos || !childPos) continue;
+      const currentGap = childPos.y - parentPos.y;
+      if (currentGap <= QUICK_UNION_UNARY_TARGET_GAP_PX) continue;
+      const nextY = parentPos.y + nextGap;
+      if (Math.abs(nextY - childPos.y) < 0.01) continue;
+      positions.set(onlyChild, {
+        x: childPos.x,
+        y: nextY,
+      });
+      changed = true;
+    }
+    if (!changed) break;
   }
 
   return positions;

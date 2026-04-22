@@ -11,7 +11,7 @@ A browser-based visualization tool for teaching university-level data structures
 - **Teaching-focused workspace**
   - Resizable layout with panels for **Code**, **Console**, **Animation**, **Variables**, and an optional **PDF** panel for problem statements.
   - All panels can be shown/hidden via the toolbar, with an empty-state hint when everything is hidden.
-  - Toolbar playback: **Jump to end** reloads the built-in demo script for the current algorithm (same baseline restore as **Reset**) and moves execution to the **last** step; **Reset** restores that baseline at the **first** step. The same controls appear in presentation mode.
+  - Toolbar playback: **Jump to end** reloads the built-in demo script for the current algorithm (same baseline restore as **Reset**) and moves execution to the **last** step; **Reset** restores that baseline at the **first** step. Even when already at the final step, **Jump to end** stays available if the editor is dirty so instructors can quickly discard edits and restore the baseline. The same controls appear in presentation mode.
 - **Command palette and keyboard shortcuts**
   - Command palette to switch demos and scenarios (`Ctrl+Shift+P` / `Cmd+Shift+P`).
   - Dedicated shortcuts help overlay (opened with the `?` key) describing play/pause, step, and exit controls.

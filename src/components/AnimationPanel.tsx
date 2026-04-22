@@ -818,11 +818,12 @@ export function AnimationPanel({
   const dsuViz = isDsuGraph ? (viz as MockDsuGraphViz) : null;
   const isPreUnionCue =
     dsuViz?.transitionKind === "pre-union" && dsuViz.transitionEffect === "pulse";
+  const shouldPlayPreUnionPulse = shouldPlay && isPreUnionCue;
   const preUnionCueDurationMs = Math.max(180, Math.round(flipDurationMs * 0.75));
   const dsuCueStyle: CSSProperties | undefined = dsuViz
     ? ({
         ["--viz-dsu-duration" as const]: `${effectiveDurationMs}ms`,
-        ...(isPreUnionCue
+        ...(shouldPlayPreUnionPulse
           ? {
               ["--viz-dsu-pre-union-duration" as const]: `${preUnionCueDurationMs}ms`,
             }
@@ -1159,7 +1160,7 @@ export function AnimationPanel({
                           showConnections={showDsuConnections}
                           useQuickUnionTreeLayout={useQuickUnionTreeLayout}
                           emphasizeActiveEdge={true}
-                          preUnionPulse={isPreUnionCue}
+                          preUnionPulse={shouldPlayPreUnionPulse}
                           shouldPlay={shouldPlay}
                           newEdgeKeys={dsuDiff.newEdgeKeys}
                           activeEdgeEntering={dsuDiff.activeEdgeEntering}

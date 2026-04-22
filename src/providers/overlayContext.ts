@@ -6,7 +6,7 @@ export type OverlayId = "commandPalette" | "settings" | "help";
 export type OverlayContextValue = {
   openId: OverlayId | null;
   isOpen: (id: OverlayId) => boolean;
-  /** Opens the overlay and records the current focused element for restoration. */
+  /** Opens the overlay; focus restore target comes from `registerTrigger`. */
   open: (id: OverlayId) => void;
   /** Closes the currently open overlay (if matching) and restores focus. */
   close: (id: OverlayId) => void;
