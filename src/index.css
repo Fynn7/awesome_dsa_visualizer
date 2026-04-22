@@ -1330,6 +1330,37 @@ button {
   }
 }
 
+/*
+ * Compound rule for "newly added edge that is also the active edge" — the
+ * case coarse Quick Union / Quick Find produce on every new union (the
+ * `activeEdge` in the trace data is the just-added edge). Without this rule
+ * the two single-attribute rules above have equal specificity (0,0,1,1) and
+ * the later one (`[data-edge-active-enter="true"]`) overrides the
+ * `animation` property of the earlier one, leaving
+ * `stroke-dasharray:1; stroke-dashoffset:1;` applied without the draw-in
+ * keyframe to restore visibility — the stroke stays fully hidden by the
+ * dash offset.
+ *
+ * We explicitly list BOTH keyframes here. They animate disjoint property
+ * groups (draw-in targets stroke-dashoffset; pulse targets stroke-width +
+ * filter) so they compose cleanly.
+ *
+ * Convention: whenever two DSU edge cue attributes (`data-edge-*`) can both
+ * be true on the same element and each drives the `animation` shorthand,
+ * add a compound selector next to the single-attribute rules that merges
+ * their `animation` lists. Single-attribute rules stay as-is so callers
+ * that set only one attribute are unaffected.
+ */
+.viz-dsu-edge[data-edge-new="true"][data-edge-active-enter="true"] {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation:
+    viz-dsu-edge-draw var(--viz-dsu-duration, 0ms)
+      var(--motion-easing-emphasized) forwards,
+    viz-dsu-edge-active-pulse calc(var(--viz-dsu-duration, 0ms) * 0.8)
+      var(--motion-easing-emphasized) 1;
+}
+
 /* Quick Union - Full: highlight the edge being walked during find() traversal. */
 .viz-dsu-edge[data-edge-trace="true"] {
   stroke: var(--accent);
