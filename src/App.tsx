@@ -33,24 +33,40 @@ type AppProps = {
 };
 
 export default function App({ initialAlgorithmId }: AppProps) {
-  const loadDisplayConnectionsPreference = (): boolean => {
-    if (typeof window === "undefined") return false;
+  const loadUiPreferences = (): {
+    displayConnections: boolean;
+    replayAnimationsOnStepBack: boolean;
+  } => {
+    if (typeof window === "undefined") {
+      return { displayConnections: false, replayAnimationsOnStepBack: false };
+    }
     try {
       const raw = window.localStorage.getItem(UI_PREFERENCES_STORAGE_KEY);
-      if (!raw) return false;
-      const parsed = JSON.parse(raw) as { displayConnections?: unknown };
-      return parsed.displayConnections === true;
+      if (!raw) {
+        return { displayConnections: false, replayAnimationsOnStepBack: false };
+      }
+      const parsed = JSON.parse(raw) as {
+        displayConnections?: unknown;
+        replayAnimationsOnStepBack?: unknown;
+      };
+      return {
+        displayConnections: parsed.displayConnections === true,
+        replayAnimationsOnStepBack: parsed.replayAnimationsOnStepBack === true,
+      };
     } catch {
-      return false;
+      return { displayConnections: false, replayAnimationsOnStepBack: false };
     }
   };
   const [state, dispatch] = useReducer(
     executionReducer,
     undefined,
-    () =>
-      createInitialState({
-        displayConnections: loadDisplayConnectionsPreference(),
-      })
+    () => {
+      const prefs = loadUiPreferences();
+      return createInitialState({
+        displayConnections: prefs.displayConnections,
+        replayAnimationsOnStepBack: prefs.replayAnimationsOnStepBack,
+      });
+    }
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
@@ -191,12 +207,15 @@ export default function App({ initialAlgorithmId }: AppProps) {
     try {
       window.localStorage.setItem(
         UI_PREFERENCES_STORAGE_KEY,
-        JSON.stringify({ displayConnections: state.displayConnections })
+        JSON.stringify({
+          displayConnections: state.displayConnections,
+          replayAnimationsOnStepBack: state.replayAnimationsOnStepBack,
+        })
       );
     } catch {
       // Ignore storage failures (private mode / quota / disabled storage).
     }
-  }, [state.displayConnections]);
+  }, [state.displayConnections, state.replayAnimationsOnStepBack]);
 
   return (
     <div className="app-shell" aria-busy={workspaceBusy}>
@@ -318,6 +337,7 @@ export default function App({ initialAlgorithmId }: AppProps) {
         showArrayIndices={state.showArrayIndices}
         enableAnimationScroll={state.enableAnimationScroll}
         animationFitAllowUpscale={state.animationFitAllowUpscale}
+        replayAnimationsOnStepBack={state.replayAnimationsOnStepBack}
         dispatch={dispatch}
       />
       <KeyboardHelpModal

@@ -1228,6 +1228,12 @@ button {
 }
 
 /*
+ * Quick Union tree mode: when reparenting shifts `left`/`top` across steps,
+ * the JS layer applies a FLIP (transform invert + play) using
+ * `dsuNodeFlip.ts`. Inline transforms win; no CSS transition on left/top here.
+ */
+
+/*
  * Opaque underlay disk: keeps semi-transparent node fills, while preventing
  * edge strokes from visually bleeding through the node interior.
  */
@@ -1254,6 +1260,25 @@ button {
   stroke-width: 3;
   stroke-linecap: round;
   stroke-linejoin: round;
+  transition:
+    stroke var(--viz-dsu-duration, 0ms) var(--motion-easing-emphasized),
+    stroke-width var(--viz-dsu-duration, 0ms) var(--motion-easing-emphasized),
+    stroke-opacity var(--viz-dsu-duration, 0ms) var(--motion-easing-emphasized);
+}
+
+/*
+ * Quick Union tree edges are straight <line> elements whose endpoints shift as
+ * the tree restructures. The unified JS driver (`src/lib/dsuTreeAnimation.ts`)
+ * writes x1/y1/x2/y2 per frame, in lock-step with the node slot positions, so
+ * no CSS transition is needed (or wanted) for the geometry attributes here;
+ * only stroke-related properties are transitioned to keep visual cues in sync
+ * with the rest of the DSU styling system.
+ */
+.viz-dsu-edge--qu-tree {
+  transition:
+    stroke var(--viz-dsu-duration, 0ms) var(--motion-easing-emphasized),
+    stroke-width var(--viz-dsu-duration, 0ms) var(--motion-easing-emphasized),
+    stroke-opacity var(--viz-dsu-duration, 0ms) var(--motion-easing-emphasized);
 }
 
 .viz-dsu-edge--muted {
@@ -1263,6 +1288,65 @@ button {
 .viz-dsu-edge--active {
   stroke: var(--accent);
   stroke-width: 4;
+}
+
+/* Draw-in animation for a freshly added union edge (uses pathLength="1"
+ * on the element so a single normalized dash covers the whole stroke). */
+.viz-dsu-edge[data-edge-new="true"] {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: viz-dsu-edge-draw var(--viz-dsu-duration, 0ms)
+    var(--motion-easing-emphasized) forwards;
+}
+
+@keyframes viz-dsu-edge-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* One-shot emphasis pulse the first frame the active union edge appears. */
+.viz-dsu-edge[data-edge-active-enter="true"] {
+  animation: viz-dsu-edge-active-pulse
+    calc(var(--viz-dsu-duration, 0ms) * 0.8)
+    var(--motion-easing-emphasized) 1;
+}
+
+@keyframes viz-dsu-edge-active-pulse {
+  0% {
+    stroke-width: 4;
+    filter: drop-shadow(0 0 0 rgba(45, 212, 191, 0));
+  }
+  45% {
+    stroke-width: 7;
+    filter: drop-shadow(0 0 4px rgba(45, 212, 191, 0.55));
+  }
+  100% {
+    stroke-width: 4;
+    filter: drop-shadow(0 0 0 rgba(45, 212, 191, 0));
+  }
+}
+
+/* Quick Union - Full: highlight the edge being walked during find() traversal. */
+.viz-dsu-edge[data-edge-trace="true"] {
+  stroke: var(--accent);
+  stroke-opacity: 0.9;
+  animation: viz-dsu-edge-trace-pulse
+    calc(var(--viz-dsu-duration, 0ms) * 0.9)
+    var(--motion-easing-emphasized) 1;
+}
+
+@keyframes viz-dsu-edge-trace-pulse {
+  0%,
+  100% {
+    stroke-width: 4;
+  }
+  50% {
+    stroke-width: 6;
+  }
 }
 
 .viz-dsu-node {
@@ -1284,6 +1368,10 @@ button {
   border: 1px solid color-mix(in srgb, var(--border) 75%, #87efe0 25%);
   background: #0b2a29;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18) inset;
+  transition:
+    background-color var(--viz-dsu-duration, 0ms) var(--motion-easing-emphasized),
+    background var(--viz-dsu-duration, 0ms) var(--motion-easing-emphasized),
+    border-color var(--viz-dsu-duration, 0ms) var(--motion-easing-emphasized);
 }
 
 .viz-dsu-node--group-0 { background: rgba(13, 75, 69, 0.60); }
@@ -1314,10 +1402,90 @@ button {
   white-space: nowrap;
 }
 
+/*
+ * When id[i] changes between steps, we render both the previous and the new
+ * value side-by-side (stacked at the same origin); the two sub-classes run a
+ * fade + small vertical slide to create an "odometer flip" feel.
+ */
+.viz-dsu-node-idval--incoming {
+  animation: viz-dsu-idval-incoming var(--viz-dsu-duration, 0ms)
+    var(--motion-easing-emphasized) 1;
+}
+
+.viz-dsu-node-idval--outgoing {
+  animation: viz-dsu-idval-outgoing var(--viz-dsu-duration, 0ms)
+    var(--motion-easing-emphasized) 1 forwards;
+}
+
+@keyframes viz-dsu-idval-incoming {
+  0% {
+    opacity: 0;
+    transform: translate(-100%, 4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-100%, 0);
+  }
+}
+
+@keyframes viz-dsu-idval-outgoing {
+  0% {
+    opacity: 1;
+    transform: translate(-100%, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-100%, -4px);
+  }
+}
+
 .viz-dsu-node--active {
   transform: scale(1.06);
   transform-origin: center center;
   border-color: var(--accent);
+}
+
+/*
+ * Quick Find - Full: a light scan cue when the for-loop points at a node.
+ * Smaller amplitude than the pre-union pulse so it is visibly distinct.
+ */
+.viz-dsu-node--scan {
+  animation: viz-dsu-node-scan
+    calc(var(--viz-dsu-duration, 0ms) * 0.85)
+    var(--motion-easing-emphasized) 1;
+}
+
+@keyframes viz-dsu-node-scan {
+  0%,
+  100% {
+    transform: scale(1.06);
+    box-shadow: 0 0 0 0 rgba(45, 212, 191, 0);
+  }
+  50% {
+    transform: scale(1.12);
+    box-shadow: 0 0 0 6px rgba(45, 212, 191, 0.18);
+  }
+}
+
+/*
+ * Quick Union - Full: a softer pulse while walking the parent chain during find().
+ */
+.viz-dsu-node--trace {
+  animation: viz-dsu-node-trace
+    calc(var(--viz-dsu-duration, 0ms) * 0.9)
+    var(--motion-easing-emphasized) 1;
+}
+
+@keyframes viz-dsu-node-trace {
+  0%,
+  100% {
+    transform: scale(1.06);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.14);
+    filter: brightness(1.2);
+  }
 }
 
 @keyframes viz-dsu-pre-union-pulse {

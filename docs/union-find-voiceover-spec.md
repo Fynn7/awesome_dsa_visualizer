@@ -97,6 +97,7 @@ Edges are **`child -> parent`** (`i -> id[i]` when `id[i] != i`).
 
 - **Quick Find** demo: pre-union cue shows **Watch these!** (pulse on `p` and `q`); result step shows inline `` `union(p,q)` `` only; `array_accesses` on the result step matches the table above.
 - **Quick Union** demo: tree edges follow **`i -> id[i]`**; active union edge highlights **root of `p` -> root of `q`** when roots differ.
+- **Step-transition animations** (color crossfade, `id[i]` number flip, new edge draw-in, active edge pulse, Quick Union tree FLIP, Quick Find - Full scan pulse, Quick Union - Full find-walk pulse) are cosmetic overlays. They do not change step semantics, the operation sequence, or the `array_accesses` totals above. They are gated by the global Settings toggle **"Replay animations when stepping backward"** (default OFF: snap on `Step Back`). See README.md "Union-Find Exercise Traces" for the user-facing description.
 
 ## Non-English narration
 

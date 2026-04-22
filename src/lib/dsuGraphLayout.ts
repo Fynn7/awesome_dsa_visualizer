@@ -171,7 +171,7 @@ function signNonZero(n: number): number {
 }
 
 /** Point where the ray `center → toward` meets the circle around `center` with given radius. */
-function pointOnCircleToward(
+export function pointOnCircleToward(
   center: DsuPoint,
   toward: DsuPoint,
   radius: number

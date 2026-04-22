@@ -14,6 +14,7 @@ type Props = {
   showArrayIndices: boolean;
   enableAnimationScroll: boolean;
   animationFitAllowUpscale: boolean;
+  replayAnimationsOnStepBack: boolean;
   dispatch: Dispatch<ExecutionAction>;
 };
 
@@ -23,6 +24,7 @@ export function SettingsModal({
   showArrayIndices,
   enableAnimationScroll,
   animationFitAllowUpscale,
+  replayAnimationsOnStepBack,
   dispatch,
 }: Props) {
   const titleId = useId();
@@ -125,6 +127,16 @@ export function SettingsModal({
                 </div>
               ) : null}
             </div>
+            <ToggleControl
+              label={strings.settings.replayAnimationsOnStepBack}
+              checked={replayAnimationsOnStepBack}
+              onChange={(value) =>
+                dispatch({
+                  type: "SET_REPLAY_ON_STEP_BACK",
+                  value,
+                })
+              }
+            />
           </div>
         </div>
       </div>

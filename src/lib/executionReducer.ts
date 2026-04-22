@@ -9,6 +9,13 @@ import { strings } from "../strings";
 
 export type PanelKey = "editor" | "console" | "animation" | "variables" | "pdf";
 
+/**
+ * Direction of the latest state transition. Consumed by the animation layer
+ * (AnimationPanel) together with {@link ExecutionState.replayAnimationsOnStepBack}
+ * to decide whether step-transition animations should play or snap instantly.
+ */
+export type StepDirection = "forward" | "back" | "instant";
+
 export type ExecutionState = {
   algorithmId: AlgorithmId;
   trace: MockStep[];
@@ -39,6 +46,18 @@ export type ExecutionState = {
    * too small; cleared when the user toggles the Animation chip.
    */
   animationAutoCollapsed: boolean;
+  /**
+   * Direction of the latest state transition that changed the visible step.
+   * Set to "forward" for STEP / TICK, "back" for STEP_BACK, and "instant" for
+   * non-directional transitions (RESET / JUMP_TO_END / SET_ALGORITHM / init).
+   */
+  lastStepDirection: StepDirection;
+  /**
+   * When true, step-transition animations replay in reverse on STEP_BACK.
+   * When false (default), the animation layer snaps to the target state on
+   * backward transitions. Applies globally to every algorithm's animations.
+   */
+  replayAnimationsOnStepBack: boolean;
 };
 
 const initialPanels: Record<PanelKey, boolean> = {
@@ -59,7 +78,9 @@ function recomputeConsole(trace: MockStep[], throughIndex: number): string[] {
 }
 
 export function createInitialState(
-  overrides?: Partial<Pick<ExecutionState, "displayConnections">>
+  overrides?: Partial<
+    Pick<ExecutionState, "displayConnections" | "replayAnimationsOnStepBack">
+  >
 ): ExecutionState {
   const demo = getAlgorithmDemo("insertion");
   return {
@@ -80,6 +101,9 @@ export function createInitialState(
     animationFitAllowUpscale: true,
     displayConnections: overrides?.displayConnections ?? false,
     animationAutoCollapsed: false,
+    lastStepDirection: "instant",
+    replayAnimationsOnStepBack:
+      overrides?.replayAnimationsOnStepBack ?? false,
   };
 }
 
@@ -99,6 +123,7 @@ export type ExecutionAction =
   | { type: "SET_ENABLE_ANIMATION_SCROLL"; value: boolean }
   | { type: "SET_ANIMATION_FIT_ALLOW_UPSCALE"; value: boolean }
   | { type: "SET_DISPLAY_CONNECTIONS"; value: boolean }
+  | { type: "SET_REPLAY_ON_STEP_BACK"; value: boolean }
   | { type: "AUTO_CLOSE_ANIMATION_PANEL" }
   | { type: "SET_ALGORITHM"; algorithmId: AlgorithmId };
 
@@ -118,6 +143,7 @@ export function executionReducer(
         consoleLines: recomputeConsole(state.trace, stepIndex),
         playing: false,
         toast: state.codeDirty ? strings.toast.codeDirty : state.toast,
+        lastStepDirection: "forward",
       };
     }
     case "STEP_BACK": {
@@ -129,6 +155,7 @@ export function executionReducer(
         consoleLines: recomputeConsole(state.trace, stepIndex),
         playing: false,
         toast: state.codeDirty ? strings.toast.codeDirty : state.toast,
+        lastStepDirection: "back",
       };
     }
     case "RESET": {
@@ -144,6 +171,7 @@ export function executionReducer(
         codeDirty: false,
         playing: false,
         toast: null,
+        lastStepDirection: "instant",
       };
     }
     case "JUMP_TO_END": {
@@ -160,6 +188,7 @@ export function executionReducer(
         codeDirty: false,
         playing: false,
         toast: null,
+        lastStepDirection: "instant",
       };
     }
     case "SET_ALGORITHM": {
@@ -176,6 +205,7 @@ export function executionReducer(
         codeDirty: false,
         playing: false,
         toast: null,
+        lastStepDirection: "instant",
       };
     }
     case "PLAY":
@@ -197,6 +227,7 @@ export function executionReducer(
         stepIndex,
         consoleLines: recomputeConsole(state.trace, stepIndex),
         toast: state.codeDirty ? strings.toast.codeDirty : state.toast,
+        lastStepDirection: "forward",
       };
     }
     case "SET_SPEED":
@@ -246,6 +277,8 @@ export function executionReducer(
       return { ...state, animationFitAllowUpscale: action.value };
     case "SET_DISPLAY_CONNECTIONS":
       return { ...state, displayConnections: action.value };
+    case "SET_REPLAY_ON_STEP_BACK":
+      return { ...state, replayAnimationsOnStepBack: action.value };
     default:
       return state;
   }
